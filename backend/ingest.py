@@ -17,18 +17,22 @@ def parse_and_ingest():
 
     print(f"Loading data from {EXCEL_FILE_PATH}...")
     df = pd.read_excel(EXCEL_FILE_PATH, sheet_name='All Agents')
-    df.fillna("N/A", inplace=True)
-
+    
+    # Pre-processing: Strip all column names and string values
+    df.columns = [col.strip() for col in df.columns]
+    
+    # Fill NA with empty string for normalization, then handle specifics
+    df = df.astype(object).fillna("")
+    
     client = chromadb.PersistentClient(path=CHROMA_DB_DIR)
 
-    # Drop existing collection for a clean re-ingest (safe for ~2500 rows)
+    # Drop existing collection for a clean re-ingest
     try:
         client.delete_collection(name=COLLECTION_NAME)
         print("Dropped existing collection for fresh ingestion.")
     except Exception:
         pass
 
-    # Use ChromaDB's default embedding function (ONNX MiniLM-L6-v2, no PyTorch needed)
     collection = client.create_collection(name=COLLECTION_NAME)
 
     documents = []
@@ -38,22 +42,35 @@ def parse_and_ingest():
     print(f"Processing {len(df)} records...")
     for idx, row in df.iterrows():
         doc_parts = []
+        metadata = {}
+        
+        # Mapping specific columns for structured filtering
+        # Note: We use .get() to be safe against column name changes
+        filter_map = {
+            "account_name": "K-Apply Account Name",
+            "rank": "Rank",
+            "city": "City",
+            "state": "State",
+            "zone": "Zone",
+            "category": "Category Type",
+            "active": "Active",
+            "bdm": "BDM",
+            "team": "Team"
+        }
+        
+        for meta_key, col_name in filter_map.items():
+            val = str(row.get(col_name, "")).strip()
+            if not val or val.lower() == "nan" or val.lower() == "n/a":
+                val = "Unknown"
+            metadata[meta_key] = val
+
+        # Build full text for semantic search
         for col in df.columns:
             val = str(row[col]).strip()
-            if val and val.upper() != "N/A" and val.lower() != "nan":
+            if val and val.lower() not in ["", "nan", "n/a"]:
                 doc_parts.append(f"{col}: {val}")
 
         doc_text = " || ".join(doc_parts)
-
-        metadata = {
-            "account_name": str(row.get('K-Apply Account Name', 'N/A')),
-            "rank": str(row.get('Rank', 'N/A')),
-            "city": str(row.get('City', 'N/A')),
-            "state": str(row.get('State', 'N/A')),
-            "zone": str(row.get('Zone', 'N/A')),
-            "category": str(row.get('Category Type', 'N/A')),
-            "active": str(row.get('Active', 'N/A')),
-        }
 
         documents.append(doc_text)
         metadatas.append(metadata)
@@ -70,7 +87,7 @@ def parse_and_ingest():
             ids=ids[i:end],
         )
 
-    print(f"Ingestion complete! {len(documents)} records indexed.")
+    print(f"Ingestion complete! {len(documents)} records indexed with normalization.")
     return len(documents)
 
 
