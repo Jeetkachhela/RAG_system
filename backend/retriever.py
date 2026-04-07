@@ -108,7 +108,7 @@ def get_hf_embeddings(text: str) -> list[float]:
     """Calls HuggingFace Inference API for embeddings instead of local inference."""
     hf_token = os.getenv("HF_TOKEN", "")
     model_id = "sentence-transformers/all-MiniLM-L6-v2"
-    api_url = f"https://api-inference.huggingface.co/pipeline/feature-extraction/{model_id}"
+    api_url = f"https://router.huggingface.co/hf-inference/models/{model_id}"
     
     headers = {}
     if hf_token:
