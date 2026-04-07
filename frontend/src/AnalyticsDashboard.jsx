@@ -80,7 +80,8 @@ export default function AnalyticsDashboard({ onBack }) {
     );
   }
 
-  const { summary, by_zone, by_rank, by_city, by_category, active_status, by_team } = data;
+  const { summary, distributions } = data;
+  const distKeys = Object.keys(distributions || {});
 
   return (
     <div className="analytics-dashboard">
@@ -91,131 +92,77 @@ export default function AnalyticsDashboard({ onBack }) {
           </button>
           <h2>Analytics Dashboard</h2>
         </div>
-        <p className="analytics-subtitle">Real-time insights from your agent network</p>
+        <p className="analytics-subtitle">Real-time dynamic insights from your data</p>
       </div>
 
-      {/* KPI Cards */}
+      {/* Dynamic KPI Cards */}
       <div className="kpi-grid">
-        <KpiCard icon={Users} label="Total Agents" value={summary.total_agents} color="#4f46e5" />
-        <KpiCard icon={Activity} label="Active Rate" value={`${summary.active_rate}%`} color="#10b981" />
-        <KpiCard icon={Globe} label="Zones" value={summary.zones} color="#06b6d4" />
-        <KpiCard icon={MapPin} label="Cities" value={summary.cities} color="#f59e0b" />
-        <KpiCard icon={TrendingUp} label="Rank Tiers" value={summary.ranks} color="#8b5cf6" />
-        <KpiCard icon={Users} label="Active Agents" value={summary.active_agents} color="#059669" />
+        <KpiCard icon={Users} label="Total Records" value={summary?.total_documents || 0} color="#4f46e5" />
+        
+        {summary?.active_rate !== undefined && (
+          <KpiCard icon={Activity} label="Active Rate" value={`${summary.active_rate}%`} color="#10b981" />
+        )}
+        
+        {Object.keys(summary || {})
+          .filter(k => k.startsWith('unique_'))
+          .map((k, idx) => {
+            const label = k.replace('unique_', '');
+            return (
+              <KpiCard 
+                key={k} 
+                icon={TrendingUp} 
+                label={`Unique ${label}s`} 
+                value={summary[k]} 
+                color={COLORS[idx % COLORS.length]} 
+              />
+            );
+        })}
       </div>
 
-      {/* Charts Grid */}
+      {/* Dynamic Charts Grid */}
       <div className="charts-grid">
-        {/* Agents by Zone - Bar Chart */}
-        <ChartCard title="Agents by Zone">
-          <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={by_zone} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-              <XAxis dataKey="name" tick={{ fontSize: 12, fill: '#64748b' }} />
-              <YAxis tick={{ fontSize: 12, fill: '#64748b' }} />
-              <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="value" radius={[6, 6, 0, 0]}>
-                {by_zone.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
-
-        {/* Rank Distribution - Donut Chart */}
-        <ChartCard title="Rank Distribution">
-          <ResponsiveContainer width="100%" height={380}>
-            <PieChart>
-              <Pie 
-                data={by_rank} 
-                cx="50%" 
-                cy="50%" 
-                innerRadius={60} 
-                outerRadius={90} 
-                paddingAngle={5} 
-                dataKey="value" 
-                label={({ name, percent }) => percent > 0.02 ? `${name} (${(percent * 100).toFixed(0)}%)` : ''}
-              >
-                {by_rank.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-              </Pie>
-              <Tooltip content={<CustomTooltip />} />
-              <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px', fontSize: '12px' }} />
-            </PieChart>
-          </ResponsiveContainer>
-        </ChartCard>
-
-        {/* Active vs Inactive - Donut Chart */}
-        <ChartCard title="Active vs Inactive">
-          <ResponsiveContainer width="100%" height={380}>
-            <PieChart>
-              <Pie 
-                data={active_status} 
-                cx="50%" 
-                cy="50%" 
-                innerRadius={60} 
-                outerRadius={90} 
-                paddingAngle={5} 
-                dataKey="value" 
-                label={({ name, percent }) => percent > 0.02 ? `${name} (${(percent * 100).toFixed(0)}%)` : ''}
-              >
-                {active_status.map((_, i) => <Cell key={i} fill={i === 0 ? '#10b981' : '#ef4444'} />)}
-              </Pie>
-              <Tooltip content={<CustomTooltip />} />
-              <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px', fontSize: '12px' }} />
-            </PieChart>
-          </ResponsiveContainer>
-        </ChartCard>
-
-        {/* Top Cities - Horizontal Bar */}
-        <ChartCard title="Top 15 Cities">
-          <ResponsiveContainer width="100%" height={500}>
-            <BarChart data={by_city} layout="vertical" margin={{ top: 5, right: 30, left: 60, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
-              <XAxis type="number" tick={{ fontSize: 12, fill: '#64748b' }} />
-              <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} width={100} />
-              <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="value" radius={[0, 6, 6, 0]}>
-                {by_city.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
-
-        {/* Category Breakdown - Pie Chart */}
-        <ChartCard title="Category Breakdown">
-          <ResponsiveContainer width="100%" height={420}>
-            <PieChart>
-              <Pie 
-                data={by_category} 
-                cx="50%" 
-                cy="50%" 
-                outerRadius={100} 
-                paddingAngle={2} 
-                dataKey="value" 
-                label={({ name, percent }) => percent > 0.02 ? `${name} (${(percent * 100).toFixed(0)}%)` : ''}
-              >
-                {by_category.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-              </Pie>
-              <Tooltip content={<CustomTooltip />} />
-              <Legend verticalAlign="bottom" height={80} iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '20px' }} />
-            </PieChart>
-          </ResponsiveContainer>
-        </ChartCard>
-
-
-        {/* Team Distribution - Bar Chart */}
-        <ChartCard title="Top Teams">
-          <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={by_team} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-              <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#64748b' }} angle={-30} textAnchor="end" height={60} />
-              <YAxis tick={{ fontSize: 12, fill: '#64748b' }} />
-              <Tooltip content={<CustomTooltip />} />
-              <Bar dataKey="value" radius={[6, 6, 0, 0]}>
-                {by_team.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
+        {distKeys.map((key, index) => {
+            const distData = distributions[key];
+            if (!distData || distData.length === 0) return null;
+            
+            // Render BarChart if too many categories, else PieChart
+            const isManyItems = distData.length > 8; 
+            
+            return (
+              <ChartCard key={key} title={`${key} Breakdown`}>
+                 <ResponsiveContainer width="100%" height={isManyItems ? 500 : 380}>
+                   {isManyItems ? (
+                     <BarChart data={distData} layout="vertical" margin={{ top: 5, right: 30, left: 60, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
+                        <XAxis type="number" tick={{ fontSize: 12, fill: '#64748b' }} />
+                        <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} width={100} />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Bar dataKey="value" radius={[0, 6, 6, 0]}>
+                          {distData.map((_, i) => <Cell key={i} fill={COLORS[(i + index) % COLORS.length]} />)}
+                        </Bar>
+                      </BarChart>
+                   ) : (
+                     <PieChart>
+                        <Pie 
+                          data={distData} 
+                          cx="50%" 
+                          cy="50%" 
+                          innerRadius={60} 
+                          outerRadius={90} 
+                          paddingAngle={5} 
+                          dataKey="value" 
+                          label={({ name, percent }) => percent > 0.02 ? `${name} (${(percent * 100).toFixed(0)}%)` : ''}
+                        >
+                          {distData.map((_, i) => <Cell key={i} fill={COLORS[(i + index) % COLORS.length]} />)}
+                        </Pie>
+                        <Tooltip content={<CustomTooltip />} />
+                        <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px', fontSize: '12px' }} />
+                      </PieChart>
+                   )}
+                 </ResponsiveContainer>
+              </ChartCard>
+            );
+        })}
       </div>
     </div>
   );

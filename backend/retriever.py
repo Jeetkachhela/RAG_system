@@ -222,17 +222,26 @@ def rewrite_query(query: str, chat_history: list = None) -> tuple[str, str, dict
         for msg in chat_history[-6:]:
             role = "User" if msg.get("role") == "user" else "Assistant"
             history_text += f"{role}: {msg.get('content')}\n"
+            
+    try:
+        from analytics import get_schema_profile
+        schema = get_schema_profile()
+        valid_keys = list(schema.keys())
+        valid_values_str = ""
+        for k, vals in schema.items():
+            valid_values_str += f"- {k}: {vals[:15]}\n" 
+    except Exception as e:
+        logger.error(f"Failed to load schema for prompt: {e}")
+        valid_keys = []
+        valid_values_str = "No specific filter schema available."
         
     prompt = f"""Given the following conversation history and latest query, extract:
 1. `search_query`: A string for semantic search (names, general topics).
-2. `keyword`: IF the user mentions a specific proper noun, company name, agent name, or part of a name (e.g., 'A P Consultants', 'Star', 'Manish'), extract that exact snippet here. 
-3. `filters`: A dictionary of exact match filters. Valid keys: "rank", "city", "state", "zone", "category", "active", "bdm", "team".
+2. `keyword`: IF the user mentions a specific proper noun, company name, agent name, or part of a name, extract that exact snippet here. 
+3. `filters`: A dictionary of exact match filters. Valid keys: {valid_keys}.
 
 Valid values to choose from for filters:
-- rank: 'Bronze', 'Diamond', 'Gold', 'Platinum', 'Silver'
-- zone: 'WEST', 'NORTH', 'SOUTH', 'EAST'
-- active: 'Yes', 'No'
-- category: 'SubAgent', 'Prepcom', 'SubAgent+Prepcom', 'HO', 'Franchise', 'Preferred Partner'
+{valid_values_str}
 
 Return ONLY a valid JSON object with the keys 'search_query', 'keyword', and 'filters'.
 

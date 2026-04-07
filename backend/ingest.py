@@ -14,25 +14,11 @@ DB_NAME = os.getenv("MONGODB_DB_NAME", "kanan_rag")
 COLLECTION_NAME = "kanan_agents"
 COMPANY_COLLECTION_NAME = "company_info"
 
-def _norm_value(key: str, val: str) -> str:
+def _norm_value(val: str) -> str:
     v = (val or "").strip()
-    if not v or v.lower() in {"nan", "n/a"}:
+    if not v or v.lower() in {"nan", "n/a", "none", "unknown"}:
         return "Unknown"
-    if key == "zone":
-        return v.upper()
-    if key == "active":
-        vv = v.strip().lower()
-        if vv in {"yes", "y", "true", "1"}:
-            return "Yes"
-        if vv in {"no", "n", "false", "0"}:
-            return "No"
-        return v.title()
-    if key in {"rank", "city", "state", "category", "bdm", "team"}:
-        return v.title()
     return v
-
-def _norm_keyed_metadata(metadata: dict) -> dict:
-    return {k: _norm_value(k, str(v)) for k, v in metadata.items()}
 
 
 def parse_and_ingest():
@@ -86,48 +72,58 @@ def parse_and_ingest_from_bytes(file_bytes: bytes, filename: str = "upload.xlsx"
 def _ingest_dataframe(df, db):
     """Common ingestion logic for both file-based and upload-based ingestion."""
     # Pre-processing
-    df.columns = [col.strip() for col in df.columns]
+    df.columns = [str(col).strip() for col in df.columns]
     df = df.astype(object).fillna("")
     
     collection = db[COLLECTION_NAME]
+    schema_collection = db["kanan_schema"]
     
     try:
         # CRITICAL: Always wipe before replace for daily updates
         res = collection.delete_many({})
-        logger.info(f"Dropped {res.deleted_count} existing agent records for fresh ingestion.")
+        schema_res = schema_collection.delete_many({})
+        logger.info(f"Dropped {res.deleted_count} agent records and {schema_res.deleted_count} schemas for fresh ingestion.")
     except Exception as e:
         logger.error(f"Error clearing collection: {e}")
+
+    # --- DYNAMIC SCHEMA DETECTION ---
+    categorical_fields = {}
+    for col in df.columns:
+        unique_vals = set()
+        for idx, row in df.iterrows():
+            val = str(row[col]).strip()
+            if val and val.lower() not in {"nan", "n/a", "none"}:
+                unique_vals.add(val)
+        # If the column has a manageable number of unique values, it's a category
+        if 0 < len(unique_vals) <= 30:
+            categorical_fields[col] = sorted(list(unique_vals))
+
+    # Save schema profile
+    schema_collection.insert_one({
+        "type": "schema_profile",
+        "categorical_fields": categorical_fields,
+        "all_columns": list(df.columns)
+    })
+    logger.info(f"Generated dynamic schema profile. Categorical fields: {list(categorical_fields.keys())}")
 
     # Import HF embedder helper locally to avoid top-level issues
     from retriever import get_hf_embeddings
 
     documents = []
 
-    print(f"Processing {len(df)} records...")
+    print(f"Processing {len(df)} records dynamically...")
     for idx, row in df.iterrows():
         doc_parts = []
         metadata = {}
         
-        filter_map = {
-            "account_name": "K-Apply Account Name",
-            "rank": "Rank",
-            "city": "City",
-            "state": "State",
-            "zone": "Zone",
-            "category": "Category Type",
-            "active": "Active",
-            "bdm": "BDM",
-            "team": "Team"
-        }
-        
-        for meta_key, col_name in filter_map.items():
-            val = str(row.get(col_name, "")).strip()
-            metadata[meta_key] = val
-        metadata = _norm_keyed_metadata(metadata)
-
         for col in df.columns:
-            val = str(row[col]).strip()
-            if val and val.lower() not in ["", "nan", "n/a"]:
+            val = _norm_value(str(row[col]))
+            
+            # If it's a known categorical field, inject it into exact metadata
+            if col in categorical_fields:
+                metadata[col] = val
+                
+            if val != "Unknown":
                 doc_parts.append(f"{col}: {val}")
 
         doc_text = " || ".join(doc_parts)
