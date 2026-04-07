@@ -35,7 +35,7 @@ _embed_cache: dict[str, tuple[float, list[float]]] = {}
 
 # Session for HF API with retries
 _hf_session = requests.Session()
-_retries = Retry(total=3, backoff_factor=0.2, status_forcelcelist=[500, 502, 503, 504])
+_retries = Retry(total=3, backoff_factor=0.2, status_forcelist=[500, 502, 503, 504])
 _hf_session.mount("https://", HTTPAdapter(max_retries=_retries))
 
 def _cache_get(cache: dict, key: str, ttl_s: int):
