@@ -39,30 +39,31 @@ def is_internet_available() -> bool:
     except Exception:
         return False
 
-def is_ollama_available() -> bool:
-    """Checks if a local Ollama instance is running and reachable."""
+def is_internet_available() -> bool:
+    """Checks if external internet is reachable by pinging Google DNS (non-blocking)."""
     try:
-        response = requests.get("http://localhost:11434/api/tags", timeout=2)
-        return response.status_code == 200
+        # Use a very short timeout for cloud environments
+        socket.setdefaulttimeout(1)
+        socket.socket(socket.AF_INET, socket.SOCK_STREAM).connect(("8.8.8.8", 53))
+        return True
     except Exception:
         return False
 
 def get_system_status():
-    """Returns a full system status report."""
+    """Returns a system status report without blocking on local services."""
     mode = get_current_mode()
     has_internet = is_internet_available()
-    has_ollama = is_ollama_available()
     
     # Logic: Even if mode is set to 'online', if internet is down, report 'Degraded'
     status = mode
     if mode == "online" and not has_internet:
-        status = "degraded (online requested, but no internet)"
+        status = "degraded (no internet)"
     
     return {
         "mode": mode,
         "status": status,
         "internet": has_internet,
-        "ollama": has_ollama,
         "groq_key": bool(os.getenv("GROQ_API_KEY")),
-        "atlas_uri": bool(os.getenv("MONGODB_URI"))
+        "atlas_uri": bool(os.getenv("MONGODB_URI")),
+        "version": "2.0.0-cloud"
     }

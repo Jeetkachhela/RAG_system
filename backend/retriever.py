@@ -6,6 +6,9 @@ import time
 from pymongo import MongoClient
 from pymongo.errors import OperationFailure
 from groq import Groq
+import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 from dotenv import load_dotenv
 from duckduckgo_search import DDGS
 from knowledge_base import get_kb_context
@@ -29,6 +32,11 @@ embedder = None
 _vector_index_available: bool | None = None
 _rewrite_cache: dict[str, tuple[float, tuple[str, str, dict]]] = {}
 _embed_cache: dict[str, tuple[float, list[float]]] = {}
+
+# Session for HF API with retries
+_hf_session = requests.Session()
+_retries = Retry(total=3, backoff_factor=0.2, status_forcelcelist=[500, 502, 503, 504])
+_hf_session.mount("https://", HTTPAdapter(max_retries=_retries))
 
 def _cache_get(cache: dict, key: str, ttl_s: int):
     item = cache.get(key)
@@ -96,12 +104,33 @@ def get_db():
             return None
     return client[DB_NAME]
 
+def get_hf_embeddings(text: str) -> list[float]:
+    """Calls HuggingFace Inference API for embeddings instead of local inference."""
+    hf_token = os.getenv("HF_TOKEN", "")
+    model_id = "sentence-transformers/all-MiniLM-L6-v2"
+    api_url = f"https://api-inference.huggingface.co/pipeline/feature-extraction/{model_id}"
+    
+    headers = {}
+    if hf_token:
+        headers["Authorization"] = f"Bearer {hf_token}"
+    
+    start_t = time.time()
+    try:
+        response = _hf_session.post(api_url, headers=headers, json={"inputs": text, "options": {"wait_for_model": True}}, timeout=10)
+        if response.status_code != 200:
+            logger.error(f"HF API Error: {response.status_code} - {response.text}")
+            return []
+        
+        embeddings = response.json()
+        logger.info(f"[SPEED] HF Embedding took {time.time() - start_t:.3f}s")
+        return embeddings
+    except Exception as e:
+        logger.error(f"HF Embedding Exception: {e}")
+        return []
+
 def get_embedder():
-    global embedder
-    if not embedder:
-        from sentence_transformers import SentenceTransformer
-        embedder = SentenceTransformer("all-MiniLM-L6-v2")
-    return embedder
+    """Reserved for legacy/local if needed, but we prefer HF API now."""
+    return None
 
 def _embed_query(text: str) -> list[float]:
     key = (text or "").strip()
@@ -110,9 +139,13 @@ def _embed_query(text: str) -> list[float]:
     cached = _cache_get(_embed_cache, key, EMBED_CACHE_TTL_SECONDS)
     if cached is not None:
         return cached
-    vec = get_embedder().encode(key).tolist()
-    _cache_set(_embed_cache, key, vec)
-    _cache_prune(_embed_cache, EMBED_CACHE_TTL_SECONDS)
+    
+    # Use HF API
+    vec = get_hf_embeddings(key)
+    
+    if vec:
+        _cache_set(_embed_cache, key, vec)
+        _cache_prune(_embed_cache, EMBED_CACHE_TTL_SECONDS)
     return vec
 
 _PROMPT_INJECTION_PATTERNS = [

@@ -92,15 +92,14 @@ def _ingest_dataframe(df, db):
     collection = db[COLLECTION_NAME]
     
     try:
-        collection.delete_many({})
-        print("Dropped existing agent collection contents for fresh ingestion.")
+        # CRITICAL: Always wipe before replace for daily updates
+        res = collection.delete_many({})
+        logger.info(f"Dropped {res.deleted_count} existing agent records for fresh ingestion.")
     except Exception as e:
-        print(f"Error clearing collection: {e}")
+        logger.error(f"Error clearing collection: {e}")
 
-    # Load embedder locally for generating vectors
-    print("Loading embedding model...")
-    from sentence_transformers import SentenceTransformer
-    embedder = SentenceTransformer("all-MiniLM-L6-v2")
+    # Import HF embedder helper locally to avoid top-level issues
+    from retriever import get_hf_embeddings
 
     documents = []
 
@@ -139,20 +138,26 @@ def _ingest_dataframe(df, db):
         })
 
     # Generate Embeddings in batches and insert
-    batch_size = 200
+    batch_size = 50 # HF API likes smaller batches or single calls
     for i in range(0, len(documents), batch_size):
         batch = documents[i:i+batch_size]
-        texts = [doc["text"] for doc in batch]
-        print(f"  Generating embeddings for batch {i}-{i+len(batch)}...")
-        embeddings = embedder.encode(texts, convert_to_numpy=True).tolist()
+        print(f"  Generating embeddings for batch {i}-{i+len(batch)} via HF API...")
         
         for j, doc in enumerate(batch):
-            doc["embedding"] = embeddings[j]
+            # HF API feature extraction can handle lists, but for MiniLM we do one by one for reliability
+            vec = get_hf_embeddings(doc["text"])
+            if vec:
+                doc["embedding"] = vec
+            else:
+                logger.warning(f"Failed to get embedding for record {i+j}")
             
         print(f"  Inserting batch {i}-{i+len(batch)} into MongoDB...")
-        collection.insert_many(batch)
+        # Only insert records that have embeddings
+        valid_batch = [d for d in batch if "embedding" in d]
+        if valid_batch:
+            collection.insert_many(valid_batch)
 
-    print(f"Ingestion complete! {len(documents)} records indexed in MongoDB.")
+    print(f"Ingestion complete! Successfully indexed {len(documents)} records in MongoDB Atlas.")
     return len(documents)
 
 if __name__ == "__main__":

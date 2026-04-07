@@ -1,0 +1,26 @@
+{
+  "exportedAt": "2026-04-07T10:19:47.876Z",
+  "sessionId": "243805df-d069-4995-9cac-7c56cf9e772b",
+  "messages": [
+    {
+      "role": "assistant",
+      "content": "Hello! I am Kanan, your conversational agent assistant. You can ask me about our agents, their ranks, zones, cities, and more!"
+    },
+    {
+      "role": "user",
+      "content": "List all Platinum agents in Gujarat"
+    },
+    {
+      "role": "assistant",
+      "content": "Here are the Platinum agents in Gujarat that I found in our database:\n\n* Kanan Palanpur \n* Kanan Navsari \n\nNote that there might be other Platinum agents in Gujarat that are not listed here, as my knowledge is limited to the provided database context. If you need more information, feel free to ask!"
+    },
+    {
+      "role": "user",
+      "content": "Kanan International uncommon FAQs..."
+    },
+    {
+      "role": "assistant",
+      "content": "You're looking for some uncommon FAQs about Kanan International. Here are a few:\n\n1. **Q: What is the history of Kanan International?**\nA: Kanan International was established in 1996 and has since grown to become one of the oldest and largest study abroad consultancies in India.\n\n2. **Q: What countries does Kanan International provide guidance for?**\nA: Kanan International provides guidance for students aiming to pursue higher education in countries such as Canada, the USA, the UK, Australia, Germany, France, Ireland, and New Zealand.\n\n3. **Q: What services does Kanan International offer?**\nA: Kanan International offers a comprehensive range of services, including university admissions, test preparation, visa guidance, and additional support such as SOP writing, scholarships, education loans, and pre-departure preparations.\n\n4. **Q: Where is Kanan International headquartered?**\nA: Kanan International is headquartered in Vadodara, Gujarat, India, with a global headquarters in Toronto, Ontario, Canada.\n\n5. **Q: How many branches does Kanan International have?**\nA: Kanan International has an extensive network of physical classroom and consultancy centers, with a strong presence in Gujarat and across major Indian cities.\n\nIf you have any more questions or need further clarification, feel free to ask!"
+    }
+  ]
+}

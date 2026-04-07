@@ -29,8 +29,12 @@ app = FastAPI(title="Kanan Conversational RAG API")
 
 @app.get("/")
 @app.head("/")
-def read_root():
-    return {"status": "ok", "service": "Kanan Conversational RAG API"}
+async def read_root():
+    return {
+        "status": "Kanan RAG Backend is running.", 
+        "version": "2.0.0-async",
+        "endpoints": ["/api/chat", "/api/ingest", "/api/status", "/api/config/mode", "/api/analytics"]
+    }
 
 # Phase 6: Basic in-memory rate limiting (per IP + per user)
 RATE_LIMIT_PER_MINUTE = int(os.getenv("RATE_LIMIT_PER_MINUTE", "60"))
@@ -95,8 +99,14 @@ async def limit_body_size(request: Request, call_next):
     return await call_next(request)
 
 @app.on_event("startup")
-def validate_production_config():
-    pass  # Auth removed; no secrets to validate
+async def validate_production_config():
+    """Ensure critical environment variables are present before starting."""
+    required = ["MONGODB_URI", "GROQ_API_KEY"]
+    missing = [env for env in required if not os.getenv(env)]
+    if missing:
+        logger.error(f"CRITICAL: Missing environment variables: {', '.join(missing)}")
+        # In production, we might want to exit, but for now we log it clearly
+    logger.info("Startup validation complete.")
 
 class Message(BaseModel):
     role: str
@@ -106,7 +116,7 @@ class ChatRequest(BaseModel):
     messages: List[Message]
 
 @app.post("/api/chat")
-def chat_endpoint(
+async def chat_endpoint(
     req: ChatRequest,
     request: Request,
     _rl: bool = Depends(rate_limit_dep),
@@ -158,7 +168,7 @@ def chat_endpoint(
 
 
 @app.post("/api/ingest")
-def ingest_endpoint():
+async def ingest_endpoint():
     try:
         logger.info("Starting ingestion process...")
         record_count = parse_and_ingest()
@@ -184,7 +194,7 @@ async def upload_endpoint(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=f"Upload failed: {e}")
 
 @app.get("/api/status")
-def get_status_endpoint():
+async def get_status_endpoint():
     try:
         return get_system_status()
     except Exception as e:
@@ -192,7 +202,7 @@ def get_status_endpoint():
         return {"mode": "offline", "status": "error", "error": str(e)}
 
 @app.post("/api/config/mode")
-def set_mode_endpoint(req: dict):
+async def set_mode_endpoint(req: dict):
     mode = req.get("mode")
     if mode not in ["online", "offline"]:
         raise HTTPException(status_code=400, detail="Invalid mode. Choose 'online' or 'offline'.")
@@ -200,7 +210,7 @@ def set_mode_endpoint(req: dict):
     return {"status": "success", "mode": mode}
 
 @app.get("/api/analytics")
-def analytics_endpoint():
+async def analytics_endpoint():
     try:
         return get_all_analytics()
     except Exception as e:

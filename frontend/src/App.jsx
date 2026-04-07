@@ -588,23 +588,6 @@ function App() {
             {isIngesting ? 'Syncing...' : 'Sync Local'}
           </button>
           
-          <input 
-            type="file" 
-            accept=".xlsx, .xls" 
-            ref={fileInputRef}
-            style={{ display: 'none' }}
-            onChange={handleFileUpload}
-          />
-          <button 
-            className={`ingest-btn-small ${isIngesting ? 'loading' : ''}`}
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isIngesting}
-            style={{ marginTop: '0.5rem', background: 'var(--panel-bg)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
-            title="Upload an Excel file to replace the current database"
-          >
-            {isIngesting ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
-            {isIngesting ? 'Uploading...' : 'Replace DB'}
-          </button>
         </div>
       </aside>
 
@@ -767,9 +750,27 @@ function App() {
                  disabled={isLoading}
                  rows={1}
                />
-               <button type="submit" className="send-btn" disabled={!input.trim() || isLoading}>
-                 <Send size={18} />
-               </button>
+                <div className="input-actions-left">
+                  <input 
+                    type="file" 
+                    accept=".xlsx, .xls" 
+                    ref={fileInputRef}
+                    style={{ display: 'none' }}
+                    onChange={handleFileUpload}
+                  />
+                  <button 
+                    type="button"
+                    className={`icon-upload-btn ${isIngesting ? 'loading' : ''}`}
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isIngesting || isLoading}
+                    title="Upload Excel to replace database"
+                  >
+                    {isIngesting ? <Loader2 size={16} className="animate-spin" /> : <Database size={18} />}
+                  </button>
+                </div>
+                <button type="submit" className="send-btn" disabled={!input.trim() || isLoading}>
+                  <Send size={18} />
+                </button>
                <div className="quick-actions">
                   <button type="button" className="action-tag" onClick={() => setSuggestedInput("Search internal database for agents...")} title="Local DB">
                     <img src="/kanan_logo.png" alt="" style={{ width: 14, height: 14, borderRadius: '2px' }} /> <span>Query DB</span>
