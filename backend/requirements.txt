@@ -11,3 +11,4 @@ rapidfuzz
 pymongo[srv]
 duckduckgo-search
 python-multipart
+requests

@@ -81,17 +81,17 @@ app.add_middleware(
 
 @app.middleware("http")
 async def limit_body_size(request: Request, call_next):
-    # Avoid reading streaming responses; only limit incoming request bodies.
+    # Only check Content-Length header to avoid consuming the body stream in middleware
     cl = request.headers.get("content-length")
     if cl:
         try:
             if int(cl) > MAX_BODY_BYTES:
-                raise HTTPException(status_code=413, detail="Request too large.")
-        except Exception:
+                return StreamingResponse(
+                    iter(["Request too large."]), 
+                    status_code=413
+                )
+        except (ValueError, TypeError):
             pass
-    body = await request.body()
-    if body and len(body) > MAX_BODY_BYTES:
-        raise HTTPException(status_code=413, detail="Request too large.")
     return await call_next(request)
 
 @app.on_event("startup")
