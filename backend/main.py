@@ -14,7 +14,7 @@ load_dotenv()
 from ingest import parse_and_ingest, parse_and_ingest_from_bytes
 from retriever import retrieve_context_with_meta
 from chat import generate_chat_stream
-from connectivity import get_system_status, set_current_mode, is_ollama_available
+from connectivity import get_system_status, set_current_mode, get_current_mode
 from analytics import get_all_analytics
 
 

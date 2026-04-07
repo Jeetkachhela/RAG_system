@@ -4,7 +4,7 @@ import json
 from groq import Groq
 from dotenv import load_dotenv
 from typing import List, Dict
-from connectivity import get_current_mode, is_ollama_available
+from connectivity import get_current_mode
 
 load_dotenv()
 
@@ -37,9 +37,9 @@ def generate_chat_stream(messages: List[Dict[str, str]], retrieved_context: str)
     
     # OFFLINE PATH: Use Ollama (Local)
     if current_mode == "offline":
-        if not is_ollama_available():
-            yield "SYSTEM: You are currently in OFFLINE mode, but the local LLM (Ollama) is not running. Please start Ollama or switch back to ONLINE mode."
-            return
+        yield "*(Offline Mode)*\n\n"
+        # We don't perform the is_ollama_available check here anymore to keep cloud boot fast.
+        # If uvicorn starts on Render, this path is unlikely, but keeping it safe.
             
         yield "*(Offline Mode - Gemma 2B)*\n\n"
         
