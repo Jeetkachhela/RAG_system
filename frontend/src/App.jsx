@@ -454,6 +454,12 @@ function App() {
 
   return (
     <div className="layout">
+      {/* Sidebar Overlay (Mobile Only) */}
+      <div 
+        className={`sidebar-overlay ${sidebarOpen ? 'show' : ''}`} 
+        onClick={() => setSidebarOpen(false)} 
+      />
+
       <Toaster position="top-right" toastOptions={{
         style: { background: '#ffffff', color: '#1e293b', border: '1px solid #cbd5e1' }
       }} />
@@ -567,6 +573,20 @@ function App() {
                 </div>
               </div>
           </div>
+        </header>
+
+        {/* Mobile-Only Header */}
+        <header className="header mobile-header desktop-hidden">
+          <button className="icon-btn" onClick={() => setSidebarOpen(true)}>
+            <Menu size={20} />
+          </button>
+          <div className="header-title">
+            <KananIcon size={24} />
+            <h1>Kanan</h1>
+          </div>
+          <button className="icon-btn" onClick={startNewSession}>
+            <PlusSquare size={20} />
+          </button>
         </header>
 
         {showAnalytics ? (

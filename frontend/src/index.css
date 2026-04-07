@@ -1326,3 +1326,137 @@ body {
   padding-left: 1rem !important;
 }
 
+/* --- GLOBAL MOBILE RESPONSIVENESS --- */
+
+/* Sidebar Overlay */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(2px);
+  z-index: 45;
+  transition: opacity 0.3s ease;
+}
+
+@media (max-width: 768px) {
+  /* Layout Adjustments */
+  .layout {
+    flex-direction: column;
+  }
+
+  /* Sidebar as Drawer */
+  .sidebar {
+    position: fixed;
+    height: 100vh;
+    left: 0;
+    top: 0;
+    transform: translateX(-100%);
+    box-shadow: 10px 0 30px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .sidebar-overlay.show {
+    display: block;
+  }
+
+  /* Header & Navigation */
+  .header.desktop-only {
+    display: none !important;
+  }
+
+  .header.mobile-header {
+    display: flex !important;
+    padding: 0.75rem 1rem;
+    background: var(--panel-bg);
+    backdrop-filter: var(--blur);
+    border-bottom: 1px solid var(--border-color);
+    justify-content: space-between;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 40;
+  }
+
+  /* Messages Scaling */
+  .message-container {
+    padding: 1rem 0.5rem !important;
+  }
+
+  .message {
+    max-width: 92% !important;
+  }
+
+  .message-content {
+    font-size: 0.95rem;
+    padding: 0.75rem 1rem !important;
+  }
+
+  /* Chat Input Area */
+  .chat-input-container {
+    padding: 0.75rem !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-bottom: 0 !important;
+  }
+
+  .chat-input-wrapper {
+    margin: 0 !important;
+    border-radius: 12px !important;
+  }
+
+  /* Quick Actions (Scrollable on Mobile) */
+  .quick-actions {
+    display: flex;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    gap: 8px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    mask-image: linear-gradient(to right, black 85%, transparent 100%);
+  }
+
+  .quick-actions::-webkit-scrollbar {
+    display: none;
+  }
+
+  .action-tag {
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  /* KPI Grid */
+  .kpi-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+  }
+
+  /* Analytics Header */
+  .analytics-header {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 0.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .welcome-screen h1 {
+    font-size: 2rem !important;
+  }
+  
+  .kpi-value {
+    font-size: 1.5rem !important;
+  }
+
+  .chart-card {
+    padding: 0.75rem !important;
+  }
+}
+

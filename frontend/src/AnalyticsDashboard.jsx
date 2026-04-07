@@ -123,37 +123,55 @@ export default function AnalyticsDashboard({ onBack }) {
 
         {/* Rank Distribution - Donut Chart */}
         <ChartCard title="Rank Distribution">
-          <ResponsiveContainer width="100%" height={280}>
+          <ResponsiveContainer width="100%" height={380}>
             <PieChart>
-              <Pie data={by_rank} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={3} dataKey="value" label={renderCustomLabel} labelLine={false}>
+              <Pie 
+                data={by_rank} 
+                cx="50%" 
+                cy="50%" 
+                innerRadius={60} 
+                outerRadius={90} 
+                paddingAngle={5} 
+                dataKey="value" 
+                label={({ name, percent }) => percent > 0.02 ? `${name} (${(percent * 100).toFixed(0)}%)` : ''}
+              >
                 {by_rank.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
               </Pie>
               <Tooltip content={<CustomTooltip />} />
-              <Legend iconType="circle" wrapperStyle={{ fontSize: '12px' }} />
+              <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px', fontSize: '12px' }} />
             </PieChart>
           </ResponsiveContainer>
         </ChartCard>
 
         {/* Active vs Inactive - Donut Chart */}
         <ChartCard title="Active vs Inactive">
-          <ResponsiveContainer width="100%" height={280}>
+          <ResponsiveContainer width="100%" height={380}>
             <PieChart>
-              <Pie data={active_status} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={5} dataKey="value" label={renderCustomLabel} labelLine={false}>
+              <Pie 
+                data={active_status} 
+                cx="50%" 
+                cy="50%" 
+                innerRadius={60} 
+                outerRadius={90} 
+                paddingAngle={5} 
+                dataKey="value" 
+                label={({ name, percent }) => percent > 0.02 ? `${name} (${(percent * 100).toFixed(0)}%)` : ''}
+              >
                 {active_status.map((_, i) => <Cell key={i} fill={i === 0 ? '#10b981' : '#ef4444'} />)}
               </Pie>
               <Tooltip content={<CustomTooltip />} />
-              <Legend iconType="circle" wrapperStyle={{ fontSize: '12px' }} />
+              <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px', fontSize: '12px' }} />
             </PieChart>
           </ResponsiveContainer>
         </ChartCard>
 
         {/* Top Cities - Horizontal Bar */}
         <ChartCard title="Top 15 Cities">
-          <ResponsiveContainer width="100%" height={400}>
-            <BarChart data={by_city} layout="vertical" margin={{ top: 5, right: 20, left: 60, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+          <ResponsiveContainer width="100%" height={500}>
+            <BarChart data={by_city} layout="vertical" margin={{ top: 5, right: 30, left: 60, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
               <XAxis type="number" tick={{ fontSize: 12, fill: '#64748b' }} />
-              <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} width={80} />
+              <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} width={100} />
               <Tooltip content={<CustomTooltip />} />
               <Bar dataKey="value" radius={[0, 6, 6, 0]}>
                 {by_city.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
@@ -164,16 +182,25 @@ export default function AnalyticsDashboard({ onBack }) {
 
         {/* Category Breakdown - Pie Chart */}
         <ChartCard title="Category Breakdown">
-          <ResponsiveContainer width="100%" height={280}>
+          <ResponsiveContainer width="100%" height={420}>
             <PieChart>
-              <Pie data={by_category} cx="50%" cy="50%" outerRadius={100} paddingAngle={2} dataKey="value" label={renderCustomLabel} labelLine={false}>
+              <Pie 
+                data={by_category} 
+                cx="50%" 
+                cy="50%" 
+                outerRadius={100} 
+                paddingAngle={2} 
+                dataKey="value" 
+                label={({ name, percent }) => percent > 0.02 ? `${name} (${(percent * 100).toFixed(0)}%)` : ''}
+              >
                 {by_category.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
               </Pie>
               <Tooltip content={<CustomTooltip />} />
-              <Legend iconType="circle" wrapperStyle={{ fontSize: '12px' }} />
+              <Legend verticalAlign="bottom" height={80} iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '20px' }} />
             </PieChart>
           </ResponsiveContainer>
         </ChartCard>
+
 
         {/* Team Distribution - Bar Chart */}
         <ChartCard title="Top Teams">

@@ -24,9 +24,15 @@ def get_summary():
     col = _get_collection()
     total = col.count_documents({})
     active = col.count_documents({"active": "Yes"})
-    zones = len([z for z in col.distinct("zone") if z and str(z).lower() not in ["unknown", "nan", ""]])
-    cities = len([c for c in col.distinct("city") if c and str(c).lower() not in ["unknown", "nan", ""]])
-    ranks = len([r for r in col.distinct("rank") if r and str(r).lower() not in ["unknown", "nan", ""]])
+    
+    # Aggressive cleaning for all unique counts
+    def clean_len(distinct_list):
+        return len([x for x in distinct_list if x and str(x).lower() not in ["unknown", "nan", "none", ""]])
+
+    zones = clean_len(col.distinct("zone"))
+    cities = clean_len(col.distinct("city"))
+    ranks = clean_len(col.distinct("rank"))
+    
     return {
         "total_agents": total,
         "active_agents": active,
@@ -39,7 +45,7 @@ def get_summary():
 def get_by_zone():
     col = _get_collection()
     pipeline = [
-        {"$match": {"zone": {"$ne": "Unknown"}}},
+        {"$match": {"zone": {"$nin": ["Unknown", "nan", "None", "", None]}}},
         {"$group": {"_id": "$zone", "count": {"$sum": 1}}},
         {"$sort": {"count": -1}},
     ]
@@ -49,7 +55,7 @@ def get_by_zone():
 def get_by_rank():
     col = _get_collection()
     pipeline = [
-        {"$match": {"rank": {"$ne": "Unknown"}}},
+        {"$match": {"rank": {"$nin": ["Unknown", "nan", "None", "", None]}}},
         {"$group": {"_id": "$rank", "count": {"$sum": 1}}},
         {"$sort": {"count": -1}},
     ]
@@ -59,7 +65,7 @@ def get_by_rank():
 def get_by_city(limit=15):
     col = _get_collection()
     pipeline = [
-        {"$match": {"city": {"$ne": "Unknown"}}},
+        {"$match": {"city": {"$nin": ["Unknown", "nan", "None", "", None]}}},
         {"$group": {"_id": "$city", "count": {"$sum": 1}}},
         {"$sort": {"count": -1}},
         {"$limit": limit},
@@ -70,7 +76,7 @@ def get_by_city(limit=15):
 def get_by_category():
     col = _get_collection()
     pipeline = [
-        {"$match": {"category": {"$ne": "Unknown"}}},
+        {"$match": {"category": {"$nin": ["Unknown", "nan", "None", "", None]}}},
         {"$group": {"_id": "$category", "count": {"$sum": 1}}},
         {"$sort": {"count": -1}},
     ]
@@ -84,12 +90,13 @@ def get_active_status():
         {"$sort": {"count": -1}},
     ]
     results = list(col.aggregate(pipeline))
-    return [{"name": r["_id"] or "Unknown", "value": r["count"]} for r in results]
+    # Fill in or filter out nulls/unknowns at results level
+    return [{"name": str(r["_id"]) if r["_id"] else "Unknown", "value": r["count"]} for r in results]
 
 def get_by_team(limit=15):
     col = _get_collection()
     pipeline = [
-        {"$match": {"team": {"$ne": "Unknown"}}},
+        {"$match": {"team": {"$nin": ["Unknown", "nan", "None", "", None]}}},
         {"$group": {"_id": "$team", "count": {"$sum": 1}}},
         {"$sort": {"count": -1}},
         {"$limit": limit},
