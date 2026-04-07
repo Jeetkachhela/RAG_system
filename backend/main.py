@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, Request
+from fastapi import FastAPI, HTTPException, Depends, Request, UploadFile, File
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-from ingest import parse_and_ingest
+from ingest import parse_and_ingest, parse_and_ingest_from_bytes
 from retriever import retrieve_context_with_meta
 from chat import generate_chat_stream
 from connectivity import get_system_status, set_current_mode, is_ollama_available
@@ -164,6 +164,21 @@ def ingest_endpoint():
     except Exception as e:
         logger.error(f"Ingestion failed: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Ingestion failed: {e}")
+
+@app.post("/api/upload")
+async def upload_endpoint(file: UploadFile = File(...)):
+    """Upload a new Excel file to replace the existing agent data."""
+    if not file.filename.endswith(('.xlsx', '.xls')):
+        raise HTTPException(status_code=400, detail="Only Excel files (.xlsx, .xls) are accepted.")
+    try:
+        logger.info(f"Received file upload: {file.filename}")
+        file_bytes = await file.read()
+        record_count = parse_and_ingest_from_bytes(file_bytes, file.filename)
+        logger.info(f"Upload ingestion successful. {record_count} records processed.")
+        return {"status": "success", "message": f"Successfully replaced data with {record_count} records from '{file.filename}'."}
+    except Exception as e:
+        logger.error(f"Upload ingestion failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Upload failed: {e}")
 
 @app.get("/api/status")
 def get_status_endpoint():

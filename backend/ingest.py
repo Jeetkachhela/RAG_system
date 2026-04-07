@@ -61,7 +61,31 @@ def parse_and_ingest():
 
     print(f"Loading data from {EXCEL_FILE_PATH}...")
     df = pd.read_excel(EXCEL_FILE_PATH, sheet_name='All Agents')
+    return _ingest_dataframe(df, db)
+
+
+def parse_and_ingest_from_bytes(file_bytes: bytes, filename: str = "upload.xlsx"):
+    """Accept uploaded Excel file bytes, replace old data, and ingest new data."""
+    import io
+    if not MONGODB_URI:
+        raise ValueError("MONGODB_URI environment variable is not set.")
+
+    client = MongoClient(MONGODB_URI)
+    db = client[DB_NAME]
+
+    logger.info(f"Processing uploaded file: {filename} ({len(file_bytes)} bytes)")
     
+    # Try to detect sheet name
+    xls = pd.ExcelFile(io.BytesIO(file_bytes))
+    sheet_name = 'All Agents' if 'All Agents' in xls.sheet_names else xls.sheet_names[0]
+    logger.info(f"Using sheet: '{sheet_name}' from {xls.sheet_names}")
+    
+    df = pd.read_excel(io.BytesIO(file_bytes), sheet_name=sheet_name)
+    return _ingest_dataframe(df, db)
+
+
+def _ingest_dataframe(df, db):
+    """Common ingestion logic for both file-based and upload-based ingestion."""
     # Pre-processing
     df.columns = [col.strip() for col in df.columns]
     df = df.astype(object).fillna("")

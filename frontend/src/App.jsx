@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
-import { Send, Database, Loader2, Bot, PlusSquare, MessageSquare, Trash2, Menu, X, User, Download, Copy, StopCircle, RefreshCw, Cloud, CloudOff, Settings, ShieldCheck, Zap, BarChart3 } from 'lucide-react';
+import { Send, Database, Loader2, Bot, PlusSquare, MessageSquare, Trash2, Menu, X, User, Download, Copy, StopCircle, RefreshCw, Cloud, CloudOff, Settings, ShieldCheck, Zap, BarChart3, Upload } from 'lucide-react';
 import AnalyticsDashboard from './AnalyticsDashboard';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -65,6 +65,7 @@ function App() {
   const chatContainerRef = useRef(null);
   const abortControllerRef = useRef(null);
   const inputRef = useRef(null);
+  const fileInputRef = useRef(null);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
   const [showJumpToLatest, setShowJumpToLatest] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
@@ -449,6 +450,35 @@ function App() {
     }
   };
 
+  const handleFileUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+      toast.error('Only Excel files (.xlsx, .xls) are allowed.');
+      return;
+    }
+
+    setIsIngesting(true);
+    const toastId = toast.loading('Uploading and processing new dataset...');
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const resp = await axios.post(`${API_BASE}/upload`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      toast.success(resp.data.message || 'Database successfully replaced!', { id: toastId });
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || 'Failed to replace database.', { id: toastId });
+    } finally {
+      setIsIngesting(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
 
 
   return (
@@ -552,9 +582,28 @@ function App() {
             className={`ingest-btn-small ${isIngesting ? 'loading' : ''}`}
             onClick={handleIngest}
             disabled={isIngesting}
+            title="Sync using local file"
           >
             {isIngesting ? <Loader2 size={16} className="animate-spin" /> : <Database size={16} />}
-            {isIngesting ? 'Syncing to Atlas...' : 'Sync Database'}
+            {isIngesting ? 'Syncing...' : 'Sync Local'}
+          </button>
+          
+          <input 
+            type="file" 
+            accept=".xlsx, .xls" 
+            ref={fileInputRef}
+            style={{ display: 'none' }}
+            onChange={handleFileUpload}
+          />
+          <button 
+            className={`ingest-btn-small ${isIngesting ? 'loading' : ''}`}
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isIngesting}
+            style={{ marginTop: '0.5rem', background: 'var(--panel-bg)', borderColor: 'var(--border-color)', color: 'var(--text-primary)' }}
+            title="Upload an Excel file to replace the current database"
+          >
+            {isIngesting ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+            {isIngesting ? 'Uploading...' : 'Replace DB'}
           </button>
         </div>
       </aside>
