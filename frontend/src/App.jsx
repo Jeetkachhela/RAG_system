@@ -278,8 +278,7 @@ function App() {
       const response = await fetch(`${API_BASE}/chat`, {
         method: 'POST',
         headers: { 
-          'Content-Type': 'application/json',
-          ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {})
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({ messages: newHistory }),
         signal: abortControllerRef.current.signal

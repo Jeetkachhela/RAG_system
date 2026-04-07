@@ -93,9 +93,7 @@ async def limit_body_size(request: Request, call_next):
 
 @app.on_event("startup")
 def validate_production_config():
-    env = os.getenv("ENV", "development").lower()
-    if env == "production" and not os.getenv("JWT_SECRET"):
-        raise RuntimeError("JWT_SECRET must be set in production.")
+    pass  # Auth removed; no secrets to validate
 
 class Message(BaseModel):
     role: str
