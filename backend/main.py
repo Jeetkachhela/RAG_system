@@ -16,21 +16,7 @@ from retriever import retrieve_context_with_meta
 from chat import generate_chat_stream
 from connectivity import get_system_status, set_current_mode, is_ollama_available
 from analytics import get_all_analytics
-from auth import (
-    RegisterRequest,
-    LoginRequest,
-    TokenResponse,
-    UserOut,
-    authenticate_user,
-    create_access_token_for_user,
-    create_user,
-    ensure_first_admin_if_empty,
-    get_current_user,
-    get_current_user_optional,
-    require_role,
-    request_password_reset,
-    reset_password_with_token,
-)
+
 
 # Setup logging
 logging.basicConfig(
@@ -45,10 +31,9 @@ app = FastAPI(title="Kanan Conversational RAG API")
 RATE_LIMIT_PER_MINUTE = int(os.getenv("RATE_LIMIT_PER_MINUTE", "60"))
 _rate_events: dict[str, list[float]] = {}
 
-def _rate_limit_key(request: Request, user: UserOut | None) -> str:
+def _rate_limit_key(request: Request) -> str:
     ip = request.client.host if request.client else "unknown"
-    email = (user.email if user else "anon")
-    return f"{ip}:{email}"
+    return ip
 
 def _check_rate_limit(key: str):
     now = time.time()
@@ -61,8 +46,8 @@ def _check_rate_limit(key: str):
     events.append(now)
     _rate_events[key] = events
 
-def rate_limit_dep(request: Request, user: UserOut = Depends(get_current_user)):
-    _check_rate_limit(_rate_limit_key(request, user))
+def rate_limit_dep(request: Request):
+    _check_rate_limit(_rate_limit_key(request))
     return True
 
 # Phase 6: Basic request size limits
@@ -123,7 +108,6 @@ class ChatRequest(BaseModel):
 def chat_endpoint(
     req: ChatRequest,
     request: Request,
-    user: UserOut = Depends(get_current_user),
     _rl: bool = Depends(rate_limit_dep),
 ):
     if not req.messages:
@@ -170,55 +154,10 @@ def chat_endpoint(
         logger.error(f"Error during chat generation: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/api/auth/register", response_model=UserOut)
-def register_endpoint(req: RegisterRequest, current_user: UserOut | None = Depends(get_current_user_optional)):
-    # First ever registered user becomes admin (bootstrap).
-    roles = ensure_first_admin_if_empty(req.email)
-    if roles != ["admin"]:
-        # After bootstrap, only admins can create users.
-        if not current_user or "admin" not in (current_user.roles or []):
-            raise HTTPException(status_code=403, detail="Registration is restricted. Ask an admin to create your account.")
-        roles = ["user"]
-    return create_user(req.email, req.password, roles=roles)
 
-@app.post("/api/auth/login", response_model=TokenResponse)
-def login_endpoint(req: LoginRequest, request: Request):
-    _check_rate_limit(_rate_limit_key(request, None))
-    user = authenticate_user(req.email, req.password)
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid email or password.")
-    token = create_access_token_for_user(user["email"], user.get("roles") or ["user"])
-    return TokenResponse(access_token=token)
-
-class ForgotPasswordRequest(BaseModel):
-    email: str
-
-class ResetPasswordRequest(BaseModel):
-    token: str
-    new_password: str
-
-@app.post("/api/auth/forgot-password")
-def forgot_password_endpoint(req: ForgotPasswordRequest, request: Request):
-    _check_rate_limit(_rate_limit_key(request, None))
-    token = request_password_reset(req.email)
-    if token:
-        # WARNING: Logging the token directly to the console for testing since SMTP is not configured.
-        logger.warning(f"\n{'='*50}\n[DEV TESTING] PASSWORD RESET REQUESTED\nEmail: {req.email}\nToken: {token}\n{'='*50}\n")
-    return {"status": "success", "message": "If the email is registered, a password reset link has been sent."}
-
-@app.post("/api/auth/reset-password")
-def reset_password_endpoint(req: ResetPasswordRequest):
-    success = reset_password_with_token(req.token, req.new_password)
-    if not success:
-        raise HTTPException(status_code=400, detail="Invalid or expired reset token.")
-    return {"status": "success", "message": "Password successfully reset."}
-
-@app.get("/api/auth/me", response_model=UserOut)
-def me_endpoint(user: UserOut = Depends(get_current_user)):
-    return user
 
 @app.post("/api/ingest")
-def ingest_endpoint(user: UserOut = Depends(require_role("admin"))):
+def ingest_endpoint():
     try:
         logger.info("Starting ingestion process...")
         record_count = parse_and_ingest()
@@ -237,7 +176,7 @@ def get_status_endpoint():
         return {"mode": "offline", "status": "error", "error": str(e)}
 
 @app.post("/api/config/mode")
-def set_mode_endpoint(req: dict, user: UserOut = Depends(require_role("admin"))):
+def set_mode_endpoint(req: dict):
     mode = req.get("mode")
     if mode not in ["online", "offline"]:
         raise HTTPException(status_code=400, detail="Invalid mode. Choose 'online' or 'offline'.")
@@ -245,7 +184,7 @@ def set_mode_endpoint(req: dict, user: UserOut = Depends(require_role("admin")))
     return {"status": "success", "mode": mode}
 
 @app.get("/api/analytics")
-def analytics_endpoint(user: UserOut = Depends(get_current_user)):
+def analytics_endpoint():
     try:
         return get_all_analytics()
     except Exception as e:

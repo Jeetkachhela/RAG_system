@@ -33,13 +33,7 @@ const KananIcon = ({ size = 24, className = "" }) => {
 };
 
 function App() {
-  const [authToken, setAuthToken] = useState(() => localStorage.getItem('kanan_auth_token') || '');
-  const [authUser, setAuthUser] = useState(null);
-  const [authMode, setAuthMode] = useState('login'); // login|register|forgot_password|reset_password
-  const [authEmail, setAuthEmail] = useState('');
-  const [authPassword, setAuthPassword] = useState('');
-  const [authResetToken, setAuthResetToken] = useState('');
-  const [authBusy, setAuthBusy] = useState(false);
+
 
   const [sessions, setSessions] = useState(() => {
     try {
@@ -75,30 +69,7 @@ function App() {
   const [showJumpToLatest, setShowJumpToLatest] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
 
-  useEffect(() => {
-    if (authToken) {
-      localStorage.setItem('kanan_auth_token', authToken);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${authToken}`;
-    } else {
-      localStorage.removeItem('kanan_auth_token');
-      delete axios.defaults.headers.common['Authorization'];
-    }
-  }, [authToken]);
 
-  const fetchMe = async () => {
-    if (!authToken) return;
-    try {
-      const res = await axios.get(`${API_BASE}/auth/me`);
-      setAuthUser(res.data);
-    } catch (e) {
-      setAuthUser(null);
-      setAuthToken('');
-    }
-  };
-
-  useEffect(() => {
-    fetchMe();
-  }, []);
 
   useEffect(() => {
     // Only persist sessions that have actual user messages (not just the welcome msg)
@@ -479,116 +450,7 @@ function App() {
     }
   };
 
-  const handleAuthSubmit = async (e) => {
-    e.preventDefault();
-    if (authMode === 'forgot_password') {
-      if (!authEmail.trim()) return;
-    } else if (authMode === 'reset_password') {
-      if (!authResetToken.trim() || !authPassword) return;
-    } else {
-      if (!authEmail.trim() || !authPassword) return;
-    }
-    
-    setAuthBusy(true);
-    try {
-      if (authMode === 'register') {
-        await axios.post(`${API_BASE}/auth/register`, { email: authEmail.trim(), password: authPassword });
-        toast.success("Account created. Please log in.");
-        setAuthMode('login');
-      } else if (authMode === 'forgot_password') {
-        const res = await axios.post(`${API_BASE}/auth/forgot-password`, { email: authEmail.trim() });
-        toast.success(res.data.message || "Reset link sent!");
-        setAuthMode('reset_password'); // Provide a seamless flow for testing
-      } else if (authMode === 'reset_password') {
-        const res = await axios.post(`${API_BASE}/auth/reset-password`, { token: authResetToken.trim(), new_password: authPassword });
-        toast.success(res.data.message || "Password reset successful! Please log in.");
-        setAuthMode('login');
-        setAuthPassword('');
-        setAuthResetToken('');
-      } else {
-        const res = await axios.post(`${API_BASE}/auth/login`, { email: authEmail.trim(), password: authPassword });
-        setAuthToken(res.data.access_token);
-        setAuthPassword('');
-        await fetchMe();
-        toast.success("Logged in");
-      }
-    } catch (err) {
-      toast.error(err?.response?.data?.detail || "Auth failed");
-    } finally {
-      setAuthBusy(false);
-    }
-  };
 
-  const logout = () => {
-    setAuthUser(null);
-    setAuthToken('');
-    toast.success("Logged out");
-  };
-
-  if (!authToken) {
-    return (
-      <div className="auth-container">
-        <Toaster position="top-right" toastOptions={{
-          style: { background: '#ffffff', color: '#1e293b', border: '1px solid #cbd5e1' }
-        }} />
-        <div className="auth-card">
-          <div className="auth-header">
-            <KananIcon size={48} />
-            <h2>
-              {authMode === 'login' ? 'Sign in' : 
-               authMode === 'register' ? 'Create account' : 
-               authMode === 'forgot_password' ? 'Reset Password' : 
-               'Enter New Password'}
-            </h2>
-            <p>Secure access to Kanan Ops Platform</p>
-          </div>
-          <form className="auth-form" onSubmit={handleAuthSubmit}>
-            {(authMode === 'login' || authMode === 'register' || authMode === 'forgot_password') && (
-              <div className="form-group">
-                <label>Email</label>
-                <input className="form-input" type="email" value={authEmail} onChange={(e) => setAuthEmail(e.target.value)} required />
-              </div>
-            )}
-            
-            {authMode === 'reset_password' && (
-              <div className="form-group">
-                <label>Reset Token</label>
-                <input className="form-input" type="text" placeholder="Check your server logs for the token" value={authResetToken} onChange={(e) => setAuthResetToken(e.target.value)} required />
-              </div>
-            )}
-
-            {(authMode === 'login' || authMode === 'register' || authMode === 'reset_password') && (
-              <div className="form-group">
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <label>{authMode === 'reset_password' ? 'New Password' : 'Password'}</label>
-                    {authMode === 'login' && (
-                        <a href="#!" onClick={(e) => { e.preventDefault(); setAuthMode('forgot_password'); }} style={{ fontSize: '0.75rem', color: 'var(--accent-color)', textDecoration: 'none' }}>Forgot password?</a>
-                    )}
-                </div>
-                <input className="form-input" type="password" value={authPassword} onChange={(e) => setAuthPassword(e.target.value)} required />
-              </div>
-            )}
-            <button className="auth-submit-btn" type="submit" disabled={authBusy}>
-              {authBusy ? 'Please wait...' : 
-               authMode === 'login' ? 'Sign in' : 
-               authMode === 'register' ? 'Create account' : 
-               authMode === 'forgot_password' ? 'Send Reset Link' : 
-               'Reset Password'}
-            </button>
-          </form>
-          <div className="auth-toggle">
-            {authMode === 'login' ? (
-              <>New here? <button onClick={() => setAuthMode('register')}>Create an account</button></>
-            ) : authMode === 'register' ? (
-              <>Already have an account? <button onClick={() => setAuthMode('login')}>Sign in</button></>
-            ) : (
-              <><button onClick={() => setAuthMode('login')}>Back to login</button></>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="layout">
@@ -724,9 +586,6 @@ function App() {
                     <Download size={14} /> Export PDF
                   </button>
                   <div className="dropdown-divider" />
-                  <button onClick={logout} className="logout-item">
-                    <User size={14} /> Logout
-                  </button>
                 </div>
               </div>
           </div>

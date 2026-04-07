@@ -10,6 +10,4 @@ groq
 pydantic
 rapidfuzz
 pymongo[srv]
-python-jose[cryptography]
-bcrypt
 duckduckgo-search
