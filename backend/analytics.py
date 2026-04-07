@@ -24,9 +24,9 @@ def get_summary():
     col = _get_collection()
     total = col.count_documents({})
     active = col.count_documents({"active": "Yes"})
-    zones = len(col.distinct("zone"))
-    cities = len(col.distinct("city"))
-    ranks = len(col.distinct("rank"))
+    zones = len([z for z in col.distinct("zone") if z and str(z).lower() not in ["unknown", "nan", ""]])
+    cities = len([c for c in col.distinct("city") if c and str(c).lower() not in ["unknown", "nan", ""]])
+    ranks = len([r for r in col.distinct("rank") if r and str(r).lower() not in ["unknown", "nan", ""]])
     return {
         "total_agents": total,
         "active_agents": active,

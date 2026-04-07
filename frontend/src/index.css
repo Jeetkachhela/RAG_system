@@ -1297,11 +1297,11 @@ body {
 
 /* --- Quick Actions Add Data Tag --- */
 .action-tag.upload-tag {
-  background: var(--brand-indigo);
+  background: var(--accent-color);
   color: white;
   border: none;
   font-weight: 600;
-  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.2);
+  box-shadow: 0 2px 8px rgba(79, 70, 22, 0.2);
 }
 
 .action-tag.upload-tag:hover:not(:disabled) {
