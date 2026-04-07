@@ -11,4 +11,4 @@ pymongo[srv]
 duckduckgo-search
 python-multipart
 requests
-fastembed
+sentence-transformers

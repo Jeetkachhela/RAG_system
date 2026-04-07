@@ -105,23 +105,25 @@ def get_db():
     return client[DB_NAME]
 
 try:
-    from fastembed import TextEmbedding
-    logger.info("Loading FastEmbed local embedding model...")
-    _embed_model = TextEmbedding("sentence-transformers/all-MiniLM-L6-v2")
-except ImportError:
+    from sentence_transformers import SentenceTransformer
+    logger.info("Loading SentenceTransformer local embedding model...")
+    _embed_model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+    logger.info("SentenceTransformer model loaded successfully!")
+except Exception as e:
+    logger.error(f"Failed to load SentenceTransformer: {e}")
     _embed_model = None
 
 def get_hf_embeddings(text: str) -> list[float]:
-    """Generates embeddings using local FastEmbed to avoid HuggingFace API limits and 401s."""
+    """Generates embeddings using local SentenceTransformer model."""
     start_t = time.time()
     if _embed_model is None:
-        logger.error("FastEmbed not installed! Run `pip install fastembed`.")
+        logger.error("SentenceTransformer model not loaded!")
         return []
     
     try:
-        embeddings = list(next(_embed_model.embed([text])))
-        logger.info(f"[SPEED] Local FastEmbed took {time.time() - start_t:.3f}s")
-        return [float(x) for x in embeddings]
+        embedding = _embed_model.encode(text, normalize_embeddings=True)
+        logger.info(f"[SPEED] Local embedding took {time.time() - start_t:.3f}s")
+        return embedding.tolist()
     except Exception as e:
         logger.error(f"Local Embedding Exception: {e}")
         return []
