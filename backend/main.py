@@ -27,6 +27,11 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Kanan Conversational RAG API")
 
+@app.get("/")
+@app.head("/")
+def read_root():
+    return {"status": "ok", "service": "Kanan Conversational RAG API"}
+
 # Phase 6: Basic in-memory rate limiting (per IP + per user)
 RATE_LIMIT_PER_MINUTE = int(os.getenv("RATE_LIMIT_PER_MINUTE", "60"))
 _rate_events: dict[str, list[float]] = {}
