@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
-import { Send, Database, Loader2, Bot, PlusSquare, MessageSquare, Trash2, Menu, X, User, Download, Copy, StopCircle, RefreshCw, Cloud, CloudOff, Settings, ShieldCheck, Zap, BarChart3, Upload } from 'lucide-react';
+import { Send, PlusCircle, Database, Loader2, Bot, PlusSquare, MessageSquare, Trash2, Menu, X, User, Download, Copy, StopCircle, RefreshCw, Cloud, CloudOff, Settings, ShieldCheck, Zap, BarChart3, Upload } from 'lucide-react';
 import AnalyticsDashboard from './AnalyticsDashboard';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -763,9 +763,9 @@ function App() {
                     className={`icon-upload-btn ${isIngesting ? 'loading' : ''}`}
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isIngesting || isLoading}
-                    title="Upload Excel to replace database"
+                    title="Replace Database (Excel)"
                   >
-                    {isIngesting ? <Loader2 size={16} className="animate-spin" /> : <Database size={18} />}
+                    {isIngesting ? <Loader2 size={16} className="animate-spin" /> : <PlusCircle size={20} />}
                   </button>
                 </div>
                 <button type="submit" className="send-btn" disabled={!input.trim() || isLoading}>
