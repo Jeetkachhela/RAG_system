@@ -51,16 +51,12 @@ def is_internet_available() -> bool:
 
 def get_system_status():
     """Returns a system status report without blocking on local services."""
-    mode = get_current_mode()
     has_internet = is_internet_available()
     
-    # Logic: Even if mode is set to 'online', if internet is down, report 'Degraded'
-    status = mode
-    if mode == "online" and not has_internet:
-        status = "degraded (no internet)"
+    # Logic: Report degraded if internet is down (as external APIs are required)
+    status = "online" if has_internet else "degraded (no internet)"
     
     return {
-        "mode": mode,
         "status": status,
         "internet": has_internet,
         "groq_key": bool(os.getenv("GROQ_API_KEY")),

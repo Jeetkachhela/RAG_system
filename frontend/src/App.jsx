@@ -57,8 +57,7 @@ function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [sessionToDelete, setSessionToDelete] = useState(null);
-  const [appMode, setAppMode] = useState('online'); // 'online' or 'offline'
-  const [systemStatus, setSystemStatus] = useState({ internet: true, ollama: false });
+  const [systemStatus, setSystemStatus] = useState({ internet: true, groq_key: false, atlas_uri: false });
   const [lastChatMeta, setLastChatMeta] = useState({ mode: null, sources: [], warnings: '' });
   
   const messagesEndRef = useRef(null);
@@ -193,12 +192,11 @@ function App() {
     setSessionToDelete(null);
   };
 
-  // Pull system status on mount and when mode changes
+  // Pull system status on mount
   const fetchStatus = async () => {
     try {
       const res = await axios.get(`${API_BASE}/status`);
       setSystemStatus(res.data);
-      setAppMode(res.data.mode);
     } catch (e) {
       console.error("Status fetch failed", e);
     }
@@ -206,21 +204,7 @@ function App() {
 
   useEffect(() => {
     fetchStatus();
-    const interval = setInterval(fetchStatus, 30000); // Check every 30s
-    return () => clearInterval(interval);
   }, []);
-
-  const toggleMode = async () => {
-    const newMode = appMode === 'online' ? 'offline' : 'online';
-    try {
-      await axios.post(`${API_BASE}/config/mode`, { mode: newMode });
-      setAppMode(newMode);
-      toast.success(`Switched to ${newMode.toUpperCase()} mode`);
-      fetchStatus();
-    } catch (e) {
-      toast.error("Failed to switch mode");
-    }
-  };
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -437,19 +421,6 @@ function App() {
     toast.success("JSON downloaded");
   };
 
-  const handleIngest = async () => {
-    setIsIngesting(true);
-    const toastId = toast.loading('Updating database in the cloud. This handles vectors natively now...');
-    try {
-      const resp = await axios.post(`${API_BASE}/ingest`);
-      toast.success(resp.data.message || 'Database updated!', { id: toastId });
-    } catch (err) {
-      toast.error('Failed to update database.', { id: toastId });
-    } finally {
-      setIsIngesting(false);
-    }
-  };
-
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -568,26 +539,6 @@ function App() {
             <BarChart3 size={16} />
             {showAnalytics ? 'Back to Chat' : 'Analytics'}
           </button>
-          <div className="mode-toggle-container">
-            <div className="mode-info">
-              <span className={`status-dot ${systemStatus.internet ? 'online' : 'offline'}`} />
-              <span className="mode-text">{appMode === 'online' ? 'Online Mode' : 'Offline Mode'}</span>
-            </div>
-            <button className={`mode-toggle-btn ${appMode}`} onClick={toggleMode}>
-              {appMode === 'online' ? <Zap size={14} /> : <ShieldCheck size={14} />}
-              {appMode === 'online' ? 'Go Offline' : 'Go Online'}
-            </button>
-          </div>
-          <button 
-            className={`ingest-btn-small ${isIngesting ? 'loading' : ''}`}
-            onClick={handleIngest}
-            disabled={isIngesting}
-            title="Sync using local file"
-          >
-            {isIngesting ? <Loader2 size={16} className="animate-spin" /> : <Database size={16} />}
-            {isIngesting ? 'Syncing...' : 'Sync Local'}
-          </button>
-          
         </div>
       </aside>
 
@@ -598,10 +549,6 @@ function App() {
             <h1>Kanan Ops Platform</h1>
           </div>
           <div className="header-actions">
-              <div className={`status-badge ${appMode}`}>
-                {appMode === 'online' ? <Cloud size={14} /> : <CloudOff size={14} />}
-                <span>{appMode === 'online' ? 'Cloud Sync' : 'Local Only'}</span>
-              </div>
               <div className="header-menu hide-on-pdf">
                 <button className="header-menu-trigger" onClick={() => document.getElementById('header-dropdown')?.classList.toggle('show')}>
                   <Settings size={16} />
@@ -750,7 +697,10 @@ function App() {
                  disabled={isLoading}
                  rows={1}
                />
-                <div className="input-actions-left">
+                <button type="submit" className="send-btn" disabled={!input.trim() || isLoading}>
+                  <Send size={18} />
+                </button>
+               <div className="quick-actions">
                   <input 
                     type="file" 
                     accept=".xlsx, .xls" 
@@ -760,18 +710,14 @@ function App() {
                   />
                   <button 
                     type="button"
-                    className={`icon-upload-btn ${isIngesting ? 'loading' : ''}`}
+                    className={`action-tag upload-tag ${isIngesting ? 'loading' : ''}`}
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isIngesting || isLoading}
                     title="Replace Database (Excel)"
                   >
-                    {isIngesting ? <Loader2 size={16} className="animate-spin" /> : <PlusCircle size={20} />}
+                    {isIngesting ? <Loader2 size={14} className="animate-spin" /> : <PlusCircle size={14} />}
+                    <span>{isIngesting ? 'Uploading...' : 'Add Data'}</span>
                   </button>
-                </div>
-                <button type="submit" className="send-btn" disabled={!input.trim() || isLoading}>
-                  <Send size={18} />
-                </button>
-               <div className="quick-actions">
                   <button type="button" className="action-tag" onClick={() => setSuggestedInput("Search internal database for agents...")} title="Local DB">
                     <img src="/kanan_logo.png" alt="" style={{ width: 14, height: 14, borderRadius: '2px' }} /> <span>Query DB</span>
                   </button>

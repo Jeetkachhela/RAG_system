@@ -33,49 +33,11 @@ def generate_chat_stream(messages: List[Dict[str, str]], retrieved_context: str)
     messages: A list of dicts [{"role": "user", "content": "..."}, {"role": "assistant", "content": "..."}]
     retrieved_context: String chunk retrieved from Vector DB or Static KB.
     """
-    current_mode = get_current_mode()
-    
-    # OFFLINE PATH: Use Ollama (Local)
-    if current_mode == "offline":
-        yield "*(Offline Mode)*\n\n"
-        # We don't perform the is_ollama_available check here anymore to keep cloud boot fast.
-        # If uvicorn starts on Render, this path is unlikely, but keeping it safe.
-            
-        yield "*(Offline Mode - Gemma 2B)*\n\n"
-        
-        try:
-            # Prepare payload for Ollama
-            prompt = f"{SYSTEM_PROMPT.format(company_profile_block='', context_block=retrieved_context)}\n\n"
-            for msg in messages:
-                prompt += f"{msg['role'].capitalize()}: {msg['content']}\n"
-            prompt += "Assistant: "
-
-            response = requests.post(
-                "http://localhost:11434/api/generate",
-                json={
-                    "model": "gemma:2b",
-                    "prompt": prompt,
-                    "stream": True
-                },
-                stream=True,
-                timeout=(5, 300)
-            )
-            
-            for line in response.iter_lines():
-                if line:
-                    decoded = json.loads(line.decode('utf-8'))
-                    yield decoded.get("response", "")
-                    if decoded.get("done"):
-                        break
-            return
-        except Exception as e:
-            yield f"Error calling local LLM: {e}"
-            return
-
-    # ONLINE PATH: Use Groq (Cloud)
+    # ONLINE PATH (Default): Use Groq (Cloud)
     if not os.getenv("GROQ_API_KEY"):
         yield "Error: GROQ_API_KEY is not set."
         return
+
 
     # Load company info from MongoDB
     company_profile = ""

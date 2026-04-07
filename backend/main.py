@@ -201,13 +201,7 @@ async def get_status_endpoint():
         logger.error(f"Status check failed: {e}")
         return {"mode": "offline", "status": "error", "error": str(e)}
 
-@app.post("/api/config/mode")
-async def set_mode_endpoint(req: dict):
-    mode = req.get("mode")
-    if mode not in ["online", "offline"]:
-        raise HTTPException(status_code=400, detail="Invalid mode. Choose 'online' or 'offline'.")
-    set_current_mode(mode)
-    return {"status": "success", "mode": mode}
+
 
 @app.get("/api/analytics")
 async def analytics_endpoint():

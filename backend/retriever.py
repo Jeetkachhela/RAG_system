@@ -364,11 +364,6 @@ def retrieve_context(query: str, chat_history: list = None, n_results: int = 40)
     # 1. Search Static KB first (FAQs and Leadership)
     kb_context = get_kb_context(query)
     
-    # NEW: If in offline mode, we STOP here and only return KB context to avoid cloud timeouts
-    if get_current_mode() == "offline":
-        logger.info("[RAG] Offline mode active: Skipping MongoDB and Web Search.")
-        return f"--- INTERNAL KNOWLEDGE (OFFLINE) --- \n{kb_context}" if kb_context else "No local information found."
-
     # 2. Enrich query and search MongoDB Atlas
     enriched_query, keyword, filters = rewrite_query(query, chat_history)
     db_results = retrieve_from_mongo(enriched_query, keyword, filters, max_results=n_results)

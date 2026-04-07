@@ -1295,42 +1295,34 @@ body {
   }
 }
 
-/* --- Search Bar Database Upload Icon --- */
-.input-actions-left {
-  display: flex;
-  align-items: center;
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 10;
-}
-
-.icon-upload-btn {
-  background: transparent;
+/* --- Quick Actions Add Data Tag --- */
+.action-tag.upload-tag {
+  background: var(--brand-indigo);
+  color: white;
   border: none;
-  color: #64748b; /* slate-500 */
-  cursor: pointer;
-  padding: 8px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.2);
 }
 
-.icon-upload-btn:hover:not(:disabled) {
-  color: #4f46e5; /* indigo-600 */
-  background: rgba(79, 70, 229, 0.1);
-  transform: scale(1.1);
+.action-tag.upload-tag:hover:not(:disabled) {
+  background: #4338ca; /* indigo-700 */
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
 }
 
-.icon-upload-btn:disabled {
-  opacity: 0.4;
+.action-tag.upload-tag:disabled {
+  opacity: 0.6;
+  background: #94a3b8;
   cursor: not-allowed;
+  transform: none;
 }
 
+.action-tag.upload-tag .animate-spin {
+  margin-right: 4px;
+}
+
+/* Restore normal padding */
 .chat-input {
-  padding-left: 48px !important;
+  padding-left: 1rem !important;
 }
 
