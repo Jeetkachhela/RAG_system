@@ -104,28 +104,26 @@ def get_db():
             return None
     return client[DB_NAME]
 
+try:
+    from fastembed import TextEmbedding
+    logger.info("Loading FastEmbed local embedding model...")
+    _embed_model = TextEmbedding("sentence-transformers/all-MiniLM-L6-v2")
+except ImportError:
+    _embed_model = None
+
 def get_hf_embeddings(text: str) -> list[float]:
-    """Calls HuggingFace Inference API for embeddings instead of local inference."""
-    hf_token = os.getenv("HF_TOKEN", "")
-    model_id = "sentence-transformers/all-MiniLM-L6-v2"
-    api_url = f"https://router.huggingface.co/hf-inference/models/{model_id}"
-    
-    headers = {}
-    if hf_token:
-        headers["Authorization"] = f"Bearer {hf_token}"
-    
+    """Generates embeddings using local FastEmbed to avoid HuggingFace API limits and 401s."""
     start_t = time.time()
+    if _embed_model is None:
+        logger.error("FastEmbed not installed! Run `pip install fastembed`.")
+        return []
+    
     try:
-        response = _hf_session.post(api_url, headers=headers, json={"inputs": text, "options": {"wait_for_model": True}}, timeout=10)
-        if response.status_code != 200:
-            logger.error(f"HF API Error: {response.status_code} - {response.text}")
-            return []
-        
-        embeddings = response.json()
-        logger.info(f"[SPEED] HF Embedding took {time.time() - start_t:.3f}s")
-        return embeddings
+        embeddings = list(next(_embed_model.embed([text])))
+        logger.info(f"[SPEED] Local FastEmbed took {time.time() - start_t:.3f}s")
+        return [float(x) for x in embeddings]
     except Exception as e:
-        logger.error(f"HF Embedding Exception: {e}")
+        logger.error(f"Local Embedding Exception: {e}")
         return []
 
 def get_embedder():
