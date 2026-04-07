@@ -584,7 +584,7 @@ function App() {
             <KananIcon size={24} />
             <h1>Kanan</h1>
           </div>
-          <button className="icon-btn" onClick={startNewSession}>
+          <button className="icon-btn" onClick={createNewChat}>
             <PlusSquare size={20} />
           </button>
         </header>
