@@ -67,10 +67,8 @@ def _parse_cors_origins(raw: str | None) -> list[str]:
     origins = [o.strip() for o in raw.split(",") if o.strip()]
     return origins
 
-cors_origins = _parse_cors_origins(os.getenv("CORS_ORIGINS"))
-fallback_origins = ["http://localhost:5173", "http://127.0.0.1:5173", "https://rag-system-7fca.vercel.app"]
-allow_origins = list(set(cors_origins + fallback_origins))
-allow_credentials = os.getenv("CORS_ALLOW_CREDENTIALS", "false").lower() == "true"
+allow_origins = ["*"]
+allow_credentials = False
 
 app.add_middleware(
     CORSMiddleware,
