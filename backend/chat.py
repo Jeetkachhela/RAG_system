@@ -1,7 +1,10 @@
 import os
+import requests
+import json
 from groq import Groq
 from dotenv import load_dotenv
 from typing import List, Dict
+from connectivity import get_current_mode, is_ollama_available
 
 load_dotenv()
 
@@ -20,6 +23,7 @@ CRITICAL INSTRUCTIONS:
 3. If asked to list agents, provide a well-formatted Markdown table or bulleted list.
 4. If the entity requested categorically does not exist in the context, politely state that you cannot find this information in the current database subset.
 5. You must remember the conversation history so you can properly answer follow-up queries.
+6. ADOPT A HUMAN-LIKE, WARM TONE. Act like a helpful human consultant, not a stiff robotic machine. Be conversational, empathetic, and chatty while still delivering precise data. You can express enthusiasm or ask friendly clarifying questions.
 
 {context_block}
 """
@@ -27,20 +31,66 @@ CRITICAL INSTRUCTIONS:
 def generate_chat_stream(messages: List[Dict[str, str]], retrieved_context: str):
     """
     messages: A list of dicts [{"role": "user", "content": "..."}, {"role": "assistant", "content": "..."}]
-    retrieved_context: String chunk retrieved from Vector DB.
+    retrieved_context: String chunk retrieved from Vector DB or Static KB.
     """
+    current_mode = get_current_mode()
     
-    if not GROQ_API_KEY:
+    # OFFLINE PATH: Use Ollama (Local)
+    if current_mode == "offline":
+        if not is_ollama_available():
+            yield "SYSTEM: You are currently in OFFLINE mode, but the local LLM (Ollama) is not running. Please start Ollama or switch back to ONLINE mode."
+            return
+            
+        yield "*(Offline Mode - Gemma 2B)*\n\n"
+        
+        try:
+            # Prepare payload for Ollama
+            prompt = f"{SYSTEM_PROMPT.format(company_profile_block='', context_block=retrieved_context)}\n\n"
+            for msg in messages:
+                prompt += f"{msg['role'].capitalize()}: {msg['content']}\n"
+            prompt += "Assistant: "
+
+            response = requests.post(
+                "http://localhost:11434/api/generate",
+                json={
+                    "model": "gemma:2b",
+                    "prompt": prompt,
+                    "stream": True
+                },
+                stream=True,
+                timeout=(5, 300)
+            )
+            
+            for line in response.iter_lines():
+                if line:
+                    decoded = json.loads(line.decode('utf-8'))
+                    yield decoded.get("response", "")
+                    if decoded.get("done"):
+                        break
+            return
+        except Exception as e:
+            yield f"Error calling local LLM: {e}"
+            return
+
+    # ONLINE PATH: Use Groq (Cloud)
+    if not os.getenv("GROQ_API_KEY"):
         yield "Error: GROQ_API_KEY is not set."
         return
 
-    # Load company info
+    # Load company info from MongoDB
     company_profile = ""
-    company_info_path = os.path.join(os.path.dirname(__file__), "company_info.txt")
-    if os.path.exists(company_info_path):
-        with open(company_info_path, "r", encoding="utf-8") as f:
-            company_profile = f"============= COMPANY PROFILE =============\n{f.read()}\n==========================================="
-            
+    try:
+        from pymongo import MongoClient
+        mongodb_uri = os.getenv("MONGODB_URI")
+        if mongodb_uri:
+            client_mongo = MongoClient(mongodb_uri, serverSelectionTimeoutMS=2000)
+            db = client_mongo[os.getenv("MONGODB_DB_NAME", "kanan_rag")]
+            company_doc = db["company_info"].find_one({"type": "company_profile"})
+            if company_doc and "content" in company_doc:
+                company_profile = f"============= COMPANY PROFILE =============\n{company_doc['content']}\n==========================================="
+    except Exception as e:
+        print(f"Error loading company profile from MongoDB: {e}")
+
     # Construct the system instruction dynamically
     context_block = f"============= DATABASE CONTEXT =============\n{retrieved_context}\n============================================"
     final_system_prompt = SYSTEM_PROMPT.replace("{context_block}", context_block).replace("{company_profile_block}", company_profile)

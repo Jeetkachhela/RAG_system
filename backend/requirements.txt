@@ -1,5 +1,6 @@
 fastapi
 uvicorn
+gunicorn
 pandas
 openpyxl
 python-dotenv
@@ -8,3 +9,7 @@ sentence-transformers
 groq
 pydantic
 rapidfuzz
+pymongo[srv]
+python-jose[cryptography]
+bcrypt
+duckduckgo-search
