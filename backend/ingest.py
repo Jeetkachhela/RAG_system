@@ -3,7 +3,6 @@ import pandas as pd
 from pymongo import MongoClient
 import logging
 from dotenv import load_dotenv
-from sentence_transformers import SentenceTransformer
 
 logger = logging.getLogger(__name__)
 
@@ -100,6 +99,7 @@ def _ingest_dataframe(df, db):
 
     # Load embedder locally for generating vectors
     print("Loading embedding model...")
+    from sentence_transformers import SentenceTransformer
     embedder = SentenceTransformer("all-MiniLM-L6-v2")
 
     documents = []

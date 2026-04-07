@@ -4,7 +4,6 @@ gunicorn
 pandas
 openpyxl
 python-dotenv
-chromadb
 sentence-transformers
 groq
 pydantic

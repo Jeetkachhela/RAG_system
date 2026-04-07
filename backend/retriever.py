@@ -7,7 +7,6 @@ from pymongo import MongoClient
 from pymongo.errors import OperationFailure
 from groq import Groq
 from dotenv import load_dotenv
-from sentence_transformers import SentenceTransformer
 from duckduckgo_search import DDGS
 from knowledge_base import get_kb_context
 from connectivity import get_current_mode
@@ -100,6 +99,7 @@ def get_db():
 def get_embedder():
     global embedder
     if not embedder:
+        from sentence_transformers import SentenceTransformer
         embedder = SentenceTransformer("all-MiniLM-L6-v2")
     return embedder
 
