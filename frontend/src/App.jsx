@@ -3,7 +3,6 @@ import axios from 'axios';
 import { Send, PlusCircle, Database, Loader2, Bot, PlusSquare, MessageSquare, Trash2, Menu, X, User, Download, Copy, StopCircle, RefreshCw, Cloud, CloudOff, Settings, ShieldCheck, Zap, BarChart3, Upload, LogOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import AnalyticsDashboard from './AnalyticsDashboard';
-import AuthScreen from './AuthScreen';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -35,9 +34,6 @@ const KananIcon = ({ size = 24, className = "" }) => {
 };
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return !!localStorage.getItem('kanan_auth_token');
-  });
 
   const [sessions, setSessions] = useState(() => {
     try {
@@ -456,15 +452,6 @@ function App() {
 
 
 
-  if (!isAuthenticated) {
-    return <AuthScreen onLoginSuccess={() => setIsAuthenticated(true)} />;
-  }
-
-  const handleLogout = () => {
-    localStorage.removeItem('kanan_auth_token');
-    setIsAuthenticated(false);
-  };
-
   return (
     <div className="layout">
       {/* Sidebar Overlay (Mobile Only) */}
@@ -583,9 +570,6 @@ function App() {
                     <Download size={14} /> Export PDF
                   </button>
                   <div className="dropdown-divider" />
-                  <button onClick={() => { handleLogout(); document.getElementById('header-dropdown')?.classList.remove('show'); }} className="danger-text">
-                    <LogOut size={14} /> Sign Out
-                  </button>
                 </div>
               </div>
           </div>
