@@ -211,7 +211,7 @@ export default function AnalyticsDashboard({ onBack }) {
       ) : (
       <>
         {/* Dynamic KPI Cards */}
-        <motion.div className="kpi-grid" variants={containerVariants}>
+        <div className="kpi-grid">
         <KpiCard icon={Users} label="Total Records" value={summary?.total_documents || 0} color="#4f46e5" />
         
         {summary?.active_rate !== undefined && (
@@ -232,10 +232,10 @@ export default function AnalyticsDashboard({ onBack }) {
               />
             );
         })}
-      </motion.div>
+      </div>
 
       {/* Dynamic Charts Grid */}
-      <motion.div className="charts-grid" variants={containerVariants}>
+      <div className="charts-grid">
         {distKeys.map((key, index) => {
             const distData = distributions[key];
             if (!distData || distData.length === 0) return null;
@@ -278,7 +278,7 @@ export default function AnalyticsDashboard({ onBack }) {
               </ChartCard>
             );
         })}
-      </motion.div>
+      </div>
       </>
       )}
     </motion.div>
