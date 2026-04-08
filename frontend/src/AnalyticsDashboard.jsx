@@ -72,7 +72,11 @@ export default function AnalyticsDashboard({ onBack }) {
           setLoading(false);
         }
       } catch (e) {
-        if (isMounted) toast.error("Failed to load analytics");
+        if (isMounted) {
+            toast.error("Failed to load analytics");
+            setData({ summary: { total_documents: 0 }, distributions: {} }); // Mock empty state to prevent infinite hangs
+            setLoading(false);
+        }
       }
     };
     
@@ -141,8 +145,31 @@ export default function AnalyticsDashboard({ onBack }) {
         <p className="analytics-subtitle">Real-time dynamic insights from your data</p>
       </div>
 
-      {/* Dynamic KPI Cards */}
-      <motion.div className="kpi-grid" variants={containerVariants}>
+      {(!summary?.total_documents || summary.total_documents === 0) ? (
+        <motion.div 
+          className="auth-card" 
+          style={{ maxWidth: '600px', margin: '4rem auto', textAlign: 'center', boxShadow: '0 10px 40px rgba(0,0,0,0.1)' }}
+          variants={containerVariants}
+        >
+           <div className="auth-logo-box" style={{ background: '#fef2f2', color: '#ef4444' }}>
+              <Activity size={32} />
+           </div>
+           <h2>Database Offline/Empty</h2>
+           <p style={{ color: '#64748b', marginTop: '1rem', lineHeight: '1.6' }}>
+             Your Kanan MongoDB Atlas cluster is currently completely empty or unreachable. The RAG AI engine and Analytics Dashboard cannot generate visual vectors until you seed the databank.
+           </p>
+           <button 
+              onClick={onBack}
+              className="auth-btn highlight" 
+              style={{ width: 'auto', margin: '2rem auto 0', padding: '0.75rem 2rem' }}
+            >
+             <ArrowLeft size={18} /> Return to Engine & Upload Excel
+           </button>
+        </motion.div>
+      ) : (
+      <>
+        {/* Dynamic KPI Cards */}
+        <motion.div className="kpi-grid" variants={containerVariants}>
         <KpiCard icon={Users} label="Total Records" value={summary?.total_documents || 0} color="#4f46e5" />
         
         {summary?.active_rate !== undefined && (
@@ -210,6 +237,8 @@ export default function AnalyticsDashboard({ onBack }) {
             );
         })}
       </motion.div>
+      </>
+      )}
     </motion.div>
   );
 }
