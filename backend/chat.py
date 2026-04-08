@@ -35,11 +35,12 @@ def _get_company_profile():
         from pymongo import MongoClient
         mongodb_uri = os.getenv("MONGODB_URI")
         if mongodb_uri:
-            client_mongo = MongoClient(mongodb_uri, serverSelectionTimeoutMS=2000)
-            db = client_mongo[os.getenv("MONGODB_DB_NAME", "kanan_rag")]
-            company_doc = db["company_info"].find_one({"type": "company_profile"})
-            if company_doc and "content" in company_doc:
-                profile = f"============= COMPANY PROFILE =============\n{company_doc['content']}\n==========================================="
+            # Fix: Native resource cleanup prevents Unclosed Socket leakages spamming the event loop!
+            with MongoClient(mongodb_uri, serverSelectionTimeoutMS=2000) as client_mongo:
+                db = client_mongo[os.getenv("MONGODB_DB_NAME", "kanan_rag")]
+                company_doc = db["company_info"].find_one({"type": "company_profile"})
+                if company_doc and "content" in company_doc:
+                    profile = f"============= COMPANY PROFILE =============\n{company_doc['content']}\n==========================================="
     except Exception as e:
         print(f"Error loading company profile from MongoDB: {e}")
     return profile
