@@ -1295,6 +1295,143 @@ body {
   }
 }
 
+/* ===== Skeleton Loading Animations ===== */
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.pulse-glow {
+  animation: pulseGlow 1.5s ease-in-out infinite;
+}
+
+.skeleton-card { pointer-events: none; }
+
+.skeleton-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+.skeleton-text-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.skeleton-line {
+  border-radius: 6px;
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+}
+
+.skeleton-value { height: 24px; width: 60%; }
+.skeleton-label { height: 12px; width: 80%; }
+.skeleton-chart-title { height: 16px; width: 40%; }
+
+.skeleton-chart {
+  height: 220px;
+  border-radius: 12px;
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+}
+
+/* ===== Enhanced KPI & Chart Animations ===== */
+.kpi-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.kpi-card:hover {
+  transform: translateY(-4px) scale(1.02) !important;
+  box-shadow: 0 12px 28px rgba(79, 70, 229, 0.12), 0 4px 8px rgba(0, 0, 0, 0.06) !important;
+  border-color: rgba(79, 70, 229, 0.2) !important;
+}
+
+.chart-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  overflow: hidden;
+}
+
+.chart-card:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.08), 0 4px 8px rgba(79, 70, 229, 0.06) !important;
+  border-color: rgba(79, 70, 229, 0.15) !important;
+}
+
+.chart-title {
+  position: relative;
+}
+
+.chart-title::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 40px;
+  height: 3px;
+  background: linear-gradient(90deg, #4f46e5, #6366f1);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.chart-card:hover .chart-title::after {
+  width: 80px;
+}
+
+/* KPI counter entrance */
+@keyframes countUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.kpi-value {
+  animation: countUp 0.6s ease-out forwards;
+}
+
+/* Chat typing indicator bounce */
+@keyframes typingBounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-8px); opacity: 1; }
+}
+
+.typing-dot {
+  animation: typingBounce 1.4s ease-in-out infinite !important;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+/* Message fade-in */
+@keyframes messageFadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.message-wrapper {
+  animation: messageFadeIn 0.35s ease-out forwards;
+}
+
+/* Welcome icon float */
+@keyframes welcomeFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.welcome-icon {
+  animation: welcomeFloat 3s ease-in-out infinite;
+}
+
 /* --- Quick Actions Add Data Tag --- */
 .action-tag.upload-tag {
   background: var(--accent-color);

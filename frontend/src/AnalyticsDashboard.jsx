@@ -95,13 +95,55 @@ export default function AnalyticsDashboard({ onBack }) {
   if (loading) {
     return (
       <motion.div 
-        className="analytics-loading"
+        className="analytics-dashboard"
         initial={{ opacity: 0 }} 
         animate={{ opacity: 1 }} 
         exit={{ opacity: 0 }}
       >
-        <Loader2 size={40} className="animate-spin" style={{ color: '#4f46e5' }} />
-        <p>Loading Analytics Dashboard...</p>
+        <div className="analytics-header">
+          <div className="analytics-header-left">
+            <button className="back-btn" onClick={onBack}>
+              <ArrowLeft size={16} /> Back to Chat
+            </button>
+            <h2>Analytics Dashboard</h2>
+          </div>
+          <p className="analytics-subtitle">Crunching your data...</p>
+        </div>
+
+        {/* Skeleton KPI Cards */}
+        <div className="kpi-grid">
+          {[1, 2, 3, 4].map(i => (
+            <motion.div 
+              key={i} 
+              className="kpi-card skeleton-card"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.1, type: "spring", stiffness: 300, damping: 24 }}
+            >
+              <div className="skeleton-icon pulse-glow" />
+              <div className="skeleton-text-group">
+                <div className="skeleton-line skeleton-value pulse-glow" />
+                <div className="skeleton-line skeleton-label pulse-glow" />
+              </div>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Skeleton Charts */}
+        <div className="charts-grid">
+          {[1, 2].map(i => (
+            <motion.div 
+              key={i} 
+              className="chart-card"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.4 + i * 0.15, type: "spring", stiffness: 300, damping: 24 }}
+            >
+              <div className="skeleton-line skeleton-chart-title pulse-glow" style={{ width: '40%', marginBottom: '1.5rem' }} />
+              <div className="skeleton-chart pulse-glow" />
+            </motion.div>
+          ))}
+        </div>
       </motion.div>
     );
   }
