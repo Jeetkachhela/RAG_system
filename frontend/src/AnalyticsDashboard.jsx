@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
 import { Loader2, Users, Activity, MapPin, Globe, ArrowLeft, TrendingUp } from 'lucide-react';
+import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 
 const API_BASE = (import.meta?.env?.VITE_API_BASE || 'http://127.0.0.1:8001/api').replace(/\/$/, '');
@@ -9,7 +10,13 @@ const API_BASE = (import.meta?.env?.VITE_API_BASE || 'http://127.0.0.1:8001/api'
 const COLORS = ['#4f46e5', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16', '#e11d48'];
 
 const KpiCard = ({ icon: Icon, label, value, color }) => (
-  <div className="kpi-card">
+  <motion.div 
+    className="kpi-card"
+    variants={{
+      hidden: { opacity: 0, y: 20 },
+      show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+    }}
+  >
     <div className="kpi-icon" style={{ background: `${color}15`, color }}>
       <Icon size={22} />
     </div>
@@ -17,14 +24,20 @@ const KpiCard = ({ icon: Icon, label, value, color }) => (
       <span className="kpi-value">{value}</span>
       <span className="kpi-label">{label}</span>
     </div>
-  </div>
+  </motion.div>
 );
 
 const ChartCard = ({ title, children }) => (
-  <div className="chart-card">
+  <motion.div 
+    className="chart-card"
+    variants={{
+      hidden: { opacity: 0, scale: 0.95 },
+      show: { opacity: 1, scale: 1, transition: { type: "spring", stiffness: 300, damping: 24 } }
+    }}
+  >
     <h3 className="chart-title">{title}</h3>
     <div className="chart-body">{children}</div>
-  </div>
+  </motion.div>
 );
 
 const CustomTooltip = ({ active, payload, label }) => {
@@ -64,10 +77,15 @@ export default function AnalyticsDashboard({ onBack }) {
 
   if (loading) {
     return (
-      <div className="analytics-loading">
+      <motion.div 
+        className="analytics-loading"
+        initial={{ opacity: 0 }} 
+        animate={{ opacity: 1 }} 
+        exit={{ opacity: 0 }}
+      >
         <Loader2 size={40} className="animate-spin" style={{ color: '#4f46e5' }} />
         <p>Loading Analytics Dashboard...</p>
-      </div>
+      </motion.div>
     );
   }
 
@@ -83,8 +101,23 @@ export default function AnalyticsDashboard({ onBack }) {
   const { summary, distributions } = data;
   const distKeys = Object.keys(distributions || {});
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
   return (
-    <div className="analytics-dashboard">
+    <motion.div 
+      className="analytics-dashboard"
+      initial="hidden"
+      animate="show"
+      variants={containerVariants}
+    >
       <div className="analytics-header">
         <div className="analytics-header-left">
           <button className="back-btn" onClick={onBack}>
@@ -96,7 +129,7 @@ export default function AnalyticsDashboard({ onBack }) {
       </div>
 
       {/* Dynamic KPI Cards */}
-      <div className="kpi-grid">
+      <motion.div className="kpi-grid" variants={containerVariants}>
         <KpiCard icon={Users} label="Total Records" value={summary?.total_documents || 0} color="#4f46e5" />
         
         {summary?.active_rate !== undefined && (
@@ -117,10 +150,10 @@ export default function AnalyticsDashboard({ onBack }) {
               />
             );
         })}
-      </div>
+      </motion.div>
 
       {/* Dynamic Charts Grid */}
-      <div className="charts-grid">
+      <motion.div className="charts-grid" variants={containerVariants}>
         {distKeys.map((key, index) => {
             const distData = distributions[key];
             if (!distData || distData.length === 0) return null;
@@ -163,7 +196,7 @@ export default function AnalyticsDashboard({ onBack }) {
               </ChartCard>
             );
         })}
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

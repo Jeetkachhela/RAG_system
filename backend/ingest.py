@@ -88,14 +88,19 @@ def _ingest_dataframe(df, db):
 
     # --- DYNAMIC SCHEMA DETECTION ---
     categorical_fields = {}
+    bad_schema_keywords = {"name", "date", "id", "no.", "number", "email", "phone", "code"}
     for col in df.columns:
+        col_lower = col.lower()
+        if any(bad_word in col_lower for bad_word in bad_schema_keywords):
+            continue
+            
         unique_vals = set()
         for idx, row in df.iterrows():
             val = str(row[col]).strip()
             if val and val.lower() not in {"nan", "n/a", "none"}:
                 unique_vals.add(val)
-        # If the column has a manageable number of unique values, it's a category
-        if 0 < len(unique_vals) <= 30:
+        # Tighter constraint: >0 and <=15 unique items define a chartable category
+        if 0 < len(unique_vals) <= 15:
             categorical_fields[col] = sorted(list(unique_vals))
 
     # Save schema profile

@@ -290,9 +290,11 @@ def retrieve_from_mongo(search_query: str, keyword: str, filters: dict, max_resu
             match_conditions[k] = {"$regex": f"^{v}$", "$options": "i"}
             
     if keyword:
+        # Escape the keyword so valid special character searches (e.g. A C & Co) do not break the regex engine
+        safe_kw = re.escape(keyword)
         match_conditions["$or"] = [
-            {"account_name": {"$regex": keyword, "$options": "i"}},
-            {"text": {"$regex": keyword, "$options": "i"}}
+            {"account_name": {"$regex": safe_kw, "$options": "i"}},
+            {"text": {"$regex": safe_kw, "$options": "i"}}
         ]
 
     try:
