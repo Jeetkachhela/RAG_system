@@ -104,49 +104,19 @@ def get_db():
             return None
     return client[DB_NAME]
 
-try:
-    from sentence_transformers import SentenceTransformer
-    logger.info("Loading SentenceTransformer local embedding model...")
-    _embed_model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
-    logger.info("SentenceTransformer model loaded successfully!")
-except Exception as e:
-    logger.error(f"Failed to load SentenceTransformer: {e}")
-    _embed_model = None
+_embed_model = None
 
 def get_hf_embeddings(text: str) -> list[float]:
-    """Generates embeddings using local SentenceTransformer model."""
-    start_t = time.time()
-    if _embed_model is None:
-        logger.error("SentenceTransformer model not loaded!")
-        return []
-    
-    try:
-        embedding = _embed_model.encode(text, normalize_embeddings=True)
-        logger.info(f"[SPEED] Local embedding took {time.time() - start_t:.3f}s")
-        return embedding.tolist()
-    except Exception as e:
-        logger.error(f"Local Embedding Exception: {e}")
-        return []
+    return []
+
+def get_hf_embeddings_batch(texts: list[str]) -> list[list[float]]:
+    return [[] for _ in texts]
 
 def get_embedder():
-    """Reserved for legacy/local if needed, but we prefer HF API now."""
     return None
 
 def _embed_query(text: str) -> list[float]:
-    key = (text or "").strip()
-    if not key:
-        return []
-    cached = _cache_get(_embed_cache, key, EMBED_CACHE_TTL_SECONDS)
-    if cached is not None:
-        return cached
-    
-    # Use HF API
-    vec = get_hf_embeddings(key)
-    
-    if vec:
-        _cache_set(_embed_cache, key, vec)
-        _cache_prune(_embed_cache, EMBED_CACHE_TTL_SECONDS)
-    return vec
+    return []
 
 _PROMPT_INJECTION_PATTERNS = [
     r"ignore (all|any|previous) instructions",
@@ -304,39 +274,15 @@ def retrieve_from_mongo(search_query: str, keyword: str, filters: dict, max_resu
             for doc in cursor:
                 results_docs.append(doc.get("text"))
             
-        # Vector Search (Atlas)
-        if search_query:
-            query_vector = _embed_query(search_query)
-            pipeline = [
-                {
-                    "$vectorSearch": {
-                        "index": "vector_index",
-                        "path": "embedding",
-                        "queryVector": query_vector,
-                        "numCandidates": 100,
-                        "limit": max_results
-                    }
-                }
-            ]
-            
-            try:
-                vector_results = list(collection.aggregate(pipeline))
-                for doc in vector_results:
-                    val = doc.get("text")
-                    if val not in results_docs:
-                        results_docs.append(val)
-            except OperationFailure as e:
-                # Fallback to text search if vector index missing or not enabled
-                if not match_conditions:
-                   words = search_query.split()
-                   regex_pattern = "|".join([re.escape(w) for w in words])
-                   cursor = collection.find({"text": {"$regex": regex_pattern, "$options": "i"}}).limit(max_results)
-                   for doc in cursor:
-                       val = doc.get("text")
-                       if val not in results_docs:
-                           results_docs.append(val)
-            except Exception as e:
-                logger.error(f"[RAG] Vector search failed: {e}")
+        # Text Search
+        if search_query and not match_conditions:
+            words = search_query.split()
+            regex_pattern = "|".join([re.escape(w) for w in words])
+            cursor = collection.find({"text": {"$regex": regex_pattern, "$options": "i"}}).limit(max_results)
+            for doc in cursor:
+                val = doc.get("text")
+                if val not in results_docs:
+                    results_docs.append(val)
                    
     except Exception as e:
         logger.error(f"[RAG] MongoDB retrieval failed: {e}")

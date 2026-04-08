@@ -99,8 +99,8 @@ def _ingest_dataframe(df, db):
             val = str(row[col]).strip()
             if val and val.lower() not in {"nan", "n/a", "none"}:
                 unique_vals.add(val)
-        # Tighter constraint: >0 and <=15 unique items define a chartable category
-        if 0 < len(unique_vals) <= 15:
+        # Limit expanded to 35 for elements like 'Team' while excluding IDs
+        if 0 < len(unique_vals) <= 35:
             categorical_fields[col] = sorted(list(unique_vals))
 
     # Save schema profile
@@ -116,7 +116,7 @@ def _ingest_dataframe(df, db):
 
     documents = []
 
-    print(f"Processing {len(df)} records dynamically...")
+    print(f"Processing and inserting {len(df)} records dynamically into MongoDB native index...")
     for idx, row in df.iterrows():
         doc_parts = []
         metadata = {}
@@ -138,27 +138,14 @@ def _ingest_dataframe(df, db):
             **metadata
         })
 
-    # Generate Embeddings in batches and insert
-    batch_size = 50 # HF API likes smaller batches or single calls
-    for i in range(0, len(documents), batch_size):
-        batch = documents[i:i+batch_size]
-        print(f"  Generating embeddings for batch {i}-{i+len(batch)} via HF API...")
-        
-        for j, doc in enumerate(batch):
-            # HF API feature extraction can handle lists, but for MiniLM we do one by one for reliability
-            vec = get_hf_embeddings(doc["text"])
-            if vec:
-                doc["embedding"] = vec
-            else:
-                logger.warning(f"Failed to get embedding for record {i+j}")
-            
-        print(f"  Inserting batch {i}-{i+len(batch)} into MongoDB...")
-        # Only insert records that have embeddings
-        valid_batch = [d for d in batch if "embedding" in d]
-        if valid_batch:
-            collection.insert_many(valid_batch)
+    # Massive speedup: Insert standard JSON without computing machine-learning density vectors
+    if documents:
+        # We can insert chunks of 500 to alleviate rapid Atlas connection loads
+        batch_size = 500
+        for i in range(0, len(documents), batch_size):
+            collection.insert_many(documents[i:i+batch_size])
 
-    print(f"Ingestion complete! Successfully indexed {len(documents)} records in MongoDB Atlas.")
+    print(f"Ingestion complete! Successfully natively indexed {len(documents)} records in MongoDB Atlas.")
     return len(documents)
 
 if __name__ == "__main__":

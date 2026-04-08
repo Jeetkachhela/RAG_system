@@ -62,17 +62,29 @@ export default function AnalyticsDashboard({ onBack }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
     const fetchAnalytics = async () => {
       try {
         const res = await axios.get(`${API_BASE}/analytics`);
-        setData(res.data);
+        if (isMounted) {
+          setData(res.data);
+          setLoading(false);
+        }
       } catch (e) {
-        toast.error("Failed to load analytics");
-      } finally {
-        setLoading(false);
+        if (isMounted) toast.error("Failed to load analytics");
       }
     };
+    
+    // Initial fetch
     fetchAnalytics();
+    
+    // Set up auto-refresh polling every 3 seconds for completely dynamic data views
+    const intervalId = setInterval(fetchAnalytics, 3000);
+    
+    return () => {
+      isMounted = false;
+      clearInterval(intervalId);
+    };
   }, []);
 
   if (loading) {
