@@ -4,7 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Lock, Mail, KeyRound, ArrowRight, ShieldCheck, HelpCircle } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
 
-const API_BASE = (import.meta?.env?.VITE_API_BASE || 'http://127.0.0.1:8001/api').replace(/\/$/, '');
+// Audited Fix: Dynamic routing ensures Vercel cloud deployments never attempt to contact Localhost.
+const API_BASE = (import.meta?.env?.VITE_API_BASE || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://127.0.0.1:8001/api' : 'https://rag-system-834m.onrender.com/api')).replace(/\/$/, '');
 
 export default function AuthScreen({ onLoginSuccess }) {
   const [view, setView] = useState('login'); // 'login', 'register', 'forgot-password-1', 'forgot-password-2'

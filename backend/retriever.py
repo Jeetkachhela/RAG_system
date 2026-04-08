@@ -95,13 +95,22 @@ def _normalize_filters(filters: dict) -> dict:
 def get_db():
     global client
     if not MONGODB_URI:
-        return None
+        raise Exception("CRITICAL: MONGODB_URI environment variable is missing.")
     if not client:
         try:
-            client = MongoClient(MONGODB_URI, serverSelectionTimeoutMS=5000)
+            # Enforce 3-second selection timeout, max pool size, and heartbeat frequency for Cloud environments
+            client = MongoClient(
+                MONGODB_URI, 
+                serverSelectionTimeoutMS=3000,
+                maxPoolSize=50,
+                socketTimeoutMS=20000,
+                connectTimeoutMS=10000
+            )
+            # Force a ping to validate the connection
+            client.admin.command('ping')
         except Exception as e:
             logger.error(f"Error connecting to MongoDB: {e}")
-            return None
+            raise Exception(f"Database connection offline: {e}")
     return client[DB_NAME]
 
 _embed_model = None

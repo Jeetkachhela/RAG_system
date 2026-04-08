@@ -9,26 +9,13 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-CONFIG_FILE = os.path.join(os.path.dirname(__file__), "app_config.json")
-
 def get_current_mode() -> str:
-    """Reads the current app mode (online or offline) from config, defaults to 'online'."""
-    if os.path.exists(CONFIG_FILE):
-        try:
-            with open(CONFIG_FILE, "r") as f:
-                config = json.load(f)
-                return config.get("mode", "online")
-        except Exception as e:
-            logger.error(f"Error reading config: {e}")
+    """Always returns online for production cloud environment to prevent file-write crashes."""
     return "online"
 
 def set_current_mode(mode: str):
-    """Saves the current app mode persistently."""
-    try:
-        with open(CONFIG_FILE, "w") as f:
-            json.dump({"mode": mode}, f)
-    except Exception as e:
-        logger.error(f"Error saving config: {e}")
+    """Deprecated in Serverless Production. State is immutable."""
+    pass
 
 def is_internet_available() -> bool:
     """Checks if external internet is reachable by pinging Google DNS."""

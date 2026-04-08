@@ -5,7 +5,8 @@ import { Loader2, Users, Activity, MapPin, Globe, ArrowLeft, TrendingUp } from '
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 
-const API_BASE = (import.meta?.env?.VITE_API_BASE || 'http://127.0.0.1:8001/api').replace(/\/$/, '');
+// Audited Fix: Dynamic routing ensures Vercel cloud deployments never attempt to contact Localhost.
+const API_BASE = (import.meta?.env?.VITE_API_BASE || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://127.0.0.1:8001/api' : 'https://rag-system-834m.onrender.com/api')).replace(/\/$/, '');
 
 const COLORS = ['#4f46e5', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16', '#e11d48'];
 

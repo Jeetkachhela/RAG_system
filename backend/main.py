@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException, Depends, Request, UploadFile, File
-from fastapi.responses import StreamingResponse
+from fastapi.concurrency import run_in_threadpool
+from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List
@@ -58,6 +59,21 @@ def rate_limit_dep(request: Request):
     _check_rate_limit(_rate_limit_key(request))
     return True
 
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Audited Fix: Ensures CORS headers are preserved even on fatal Unhandled Exceptions, preventing opaque Frontend Network Errors."""
+    logger.error(f"Global unhandled exception: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": str(exc) if str(exc) else "Internal Server Error"},
+        headers={"Access-Control-Allow-Origin": "*"}  # Force CORS reflection
+    )
+
+@app.get("/api/health")
+async def health_check():
+    """Independent heartbeat endpoint for cloud loadbalancers to ping our system without burning token rate limits."""
+    return {"status": "healthy", "service": "kanan-rag-engine", "timestamp": time.time()}
+
 # Phase 6: Basic request size limits
 MAX_BODY_BYTES = int(os.getenv("MAX_BODY_BYTES", "200000"))
 MAX_MESSAGES = int(os.getenv("MAX_MESSAGES", "12"))
@@ -97,15 +113,18 @@ async def limit_body_size(request: Request, call_next):
             pass
     return await call_next(request)
 
+import sys
+
 @app.on_event("startup")
 async def validate_production_config():
     """Ensure critical environment variables are present before starting."""
     required = ["MONGODB_URI", "GROQ_API_KEY"]
     missing = [env for env in required if not os.getenv(env)]
     if missing:
-        logger.error(f"CRITICAL: Missing environment variables: {', '.join(missing)}")
-        # In production, we might want to exit, but for now we log it clearly
-    logger.info("Startup validation complete.")
+        msg = f"CRITICAL BOOT FAILURE: Missing required environment variables: {', '.join(missing)}. Halting serverless deployment."
+        logger.error(msg)
+        sys.exit(1)
+    logger.info("Startup validation complete. All required environment configurations are present.")
 
 class Message(BaseModel):
     role: str
@@ -145,7 +164,8 @@ async def chat_endpoint(
     try:
         # Keep only the last 6 messages to prevent LLM context bloat and hallucinations
         recent_messages = raw_messages[-6:] if len(raw_messages) > 6 else raw_messages
-        context_str, meta = retrieve_context_with_meta(last_user_query, chat_history=recent_messages)
+        # Offload synchronous PyMongo lookup bounds to threadpool to prevent ASGI event loop blocking
+        context_str, meta = await run_in_threadpool(retrieve_context_with_meta, last_user_query, chat_history=recent_messages)
 
         headers = {}
         if meta.get("warnings"):

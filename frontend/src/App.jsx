@@ -12,7 +12,8 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import './index.css';
 
-const API_BASE = (import.meta?.env?.VITE_API_BASE || 'http://127.0.0.1:8001/api').replace(/\/$/, '');
+// Audited Fix: Dynamic routing ensures Vercel cloud deployments never attempt to contact Localhost.
+const API_BASE = (import.meta?.env?.VITE_API_BASE || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://127.0.0.1:8001/api' : 'https://rag-system-834m.onrender.com/api')).replace(/\/$/, '');
 const SYSTEM_MSG = { role: 'assistant', content: 'Hello! I am Kanan, your conversational agent assistant. You can ask me about our agents, their ranks, zones, cities, and more!' };
 
 const KananIcon = ({ size = 24, className = "" }) => {
@@ -20,7 +21,7 @@ const KananIcon = ({ size = 24, className = "" }) => {
   return (
     <div className={className} style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
       <img 
-        src="/kanan_logo.png" 
+        src="/KANAN.png" 
         alt="Kanan.co" 
         style={{ width: size, height: size, borderRadius: '6px', objectFit: 'contain' }} 
       />
@@ -269,7 +270,16 @@ function App() {
         signal: abortControllerRef.current.signal
       });
 
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      if (!response.ok) {
+        let errMessage = `HTTP error! status: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          if (errorData?.detail) errMessage = errorData.detail;
+        } catch (e) {
+          // If the response isn't JSON, we fall back to the generic status string
+        }
+        throw new Error(errMessage);
+      }
 
       const meta = {
         mode: response.headers.get('X-Kanan-Mode'),
@@ -739,7 +749,7 @@ function App() {
                     <span>{isIngesting ? 'Uploading...' : 'Add Data'}</span>
                   </button>
                   <button type="button" className="action-tag" onClick={() => setSuggestedInput("Search internal database for agents...")} title="Local DB">
-                    <img src="/kanan_logo.png" alt="" style={{ width: 14, height: 14, borderRadius: '2px' }} /> <span>Query DB</span>
+                    <img src="/KANAN.png" alt="" style={{ width: 14, height: 14, borderRadius: '2px' }} /> <span>Query DB</span>
                   </button>
                   <button type="button" className="action-tag" onClick={() => setSuggestedInput("Search online for...")} title="Search Web">
                     <Bot size={14} style={{ color: '#4f46e5' }} /> <span>Search Web</span>
