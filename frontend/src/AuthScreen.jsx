@@ -20,6 +20,14 @@ export default function AuthScreen({ onLoginSuccess }) {
   const [fetchedQuestion, setFetchedQuestion] = useState('');
   const [newPassword, setNewPassword] = useState('');
 
+  const extractError = (err) => {
+    if (!err.response || !err.response.data) return "Network Error or Server Offline";
+    const detail = err.response.data.detail;
+    if (typeof detail === 'string') return detail;
+    if (Array.isArray(detail)) return detail[0]?.msg || "Validation Error";
+    return "Unknown Error";
+  };
+
   const handleLogin = async (e) => {
     e.preventDefault();
     setIsLoading(true);
@@ -29,7 +37,7 @@ export default function AuthScreen({ onLoginSuccess }) {
       localStorage.setItem('kanan_auth_token', res.data.access_token);
       onLoginSuccess();
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Invalid credentials");
+      toast.error(extractError(err));
     } finally {
       setIsLoading(false);
     }
@@ -49,7 +57,7 @@ export default function AuthScreen({ onLoginSuccess }) {
       localStorage.setItem('kanan_auth_token', res.data.access_token);
       onLoginSuccess();
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Registration failed");
+      toast.error(extractError(err));
     } finally {
       setIsLoading(false);
     }
@@ -63,7 +71,7 @@ export default function AuthScreen({ onLoginSuccess }) {
       setFetchedQuestion(res.data.security_question);
       setView('forgot-password-2');
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Email not found");
+      toast.error(extractError(err));
     } finally {
       setIsLoading(false);
     }
@@ -84,7 +92,7 @@ export default function AuthScreen({ onLoginSuccess }) {
       setSecurityAnswer('');
       setNewPassword('');
     } catch (err) {
-      toast.error(err.response?.data?.detail || "Incorrect answer");
+      toast.error(extractError(err));
     } finally {
       setIsLoading(false);
     }
