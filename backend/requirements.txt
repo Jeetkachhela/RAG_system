@@ -12,3 +12,6 @@ duckduckgo-search
 python-multipart
 requests
 sentence-transformers
+passlib
+bcrypt
+PyJWT

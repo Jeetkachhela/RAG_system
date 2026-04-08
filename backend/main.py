@@ -16,7 +16,7 @@ from retriever import retrieve_context_with_meta
 from chat import generate_chat_stream
 from connectivity import get_system_status, set_current_mode, get_current_mode
 from analytics import get_all_analytics
-
+import auth
 
 # Setup logging
 logging.basicConfig(
@@ -26,6 +26,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Kanan Conversational RAG API")
+app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 
 @app.get("/")
 @app.head("/")
