@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Lock, Mail, KeyRound, ArrowRight, ShieldCheck, HelpCircle } from 'lucide-react';
-import toast from 'react-hot-toast';
+import toast, { Toaster } from 'react-hot-toast';
 
 const API_BASE = (import.meta?.env?.VITE_API_BASE || 'http://127.0.0.1:8001/api').replace(/\/$/, '');
 
@@ -92,6 +92,9 @@ export default function AuthScreen({ onLoginSuccess }) {
 
   return (
     <div className="auth-overlay">
+      <Toaster position="top-right" toastOptions={{
+        style: { background: '#ffffff', color: '#1e293b', border: '1px solid #cbd5e1' }
+      }} />
       <div className="auth-bg-decor1"></div>
       <div className="auth-bg-decor2"></div>
       
