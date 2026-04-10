@@ -27,11 +27,55 @@ def _get_schema_collection():
     return _get_client()[DB_NAME]["kanan_schema"]
 
 def get_schema_profile():
-    schema_col = _get_schema_collection()
-    profile = schema_col.find_one({"type": "schema_profile"})
-    if profile and "categorical_fields" in profile:
-        return profile["categorical_fields"]
-    return {}
+    """Try to load schema from kanan_schema collection."""
+    try:
+        schema_col = _get_schema_collection()
+        profile = schema_col.find_one({"type": "schema_profile"})
+        if profile and "categorical_fields" in profile and profile["categorical_fields"]:
+            return profile["categorical_fields"]
+    except Exception as e:
+        logger.warning(f"Could not load schema profile: {e}")
+    return None
+
+def _auto_detect_categorical_fields():
+    """Fallback: scan actual documents to auto-detect categorical columns dynamically."""
+    col = _get_collection()
+    
+    # Sample a document to discover all field names
+    sample = col.find_one()
+    if not sample:
+        return {}
+
+    # Fields to always skip (MongoDB internals + high-cardinality identifiers)
+    skip_fields = {"_id", "text", "embedding", "vector"}
+    skip_keywords = {"name", "date", "id", "no.", "number", "email", "phone", "code", "address", "url", "link"}
+    
+    categorical_fields = {}
+    
+    for field in sample.keys():
+        if field in skip_fields:
+            continue
+        field_lower = field.lower()
+        if any(kw in field_lower for kw in skip_keywords):
+            continue
+        
+        # Count distinct non-null values
+        try:
+            distinct_vals = col.distinct(field)
+            clean_vals = [
+                v for v in distinct_vals 
+                if v is not None and str(v).strip() != "" 
+                and str(v).strip().lower() not in {"unknown", "nan", "none", "n/a"}
+            ]
+            # Only treat as categorical if between 1 and 35 unique values
+            if 1 <= len(clean_vals) <= 35:
+                categorical_fields[field] = sorted([str(v) for v in clean_vals])
+        except Exception as e:
+            logger.warning(f"Could not get distinct values for field '{field}': {e}")
+            continue
+    
+    logger.info(f"Auto-detected {len(categorical_fields)} categorical fields: {list(categorical_fields.keys())}")
+    return categorical_fields
 
 def get_dynamic_distribution(field_name, limit=20):
     col = _get_collection()
@@ -42,7 +86,7 @@ def get_dynamic_distribution(field_name, limit=20):
         {"$limit": limit},
     ]
     results = list(col.aggregate(pipeline))
-    return [{"name": r["_id"], "value": r["count"]} for r in results]
+    return [{"name": str(r["_id"]), "value": r["count"]} for r in results]
 
 def get_dynamic_summary(categorical_fields):
     col = _get_collection()
@@ -52,6 +96,9 @@ def get_dynamic_summary(categorical_fields):
         "total_documents": total,
     }
     
+    if total == 0:
+        return summary
+    
     # Active rate calculation (if a boolean/Yes-No "Active" column exists)
     active_col = next((k for k in categorical_fields.keys() if k.lower() == "active"), None)
     if active_col:
@@ -60,15 +107,30 @@ def get_dynamic_summary(categorical_fields):
         summary["active_rate"] = round((active_count / total * 100), 1) if total > 0 else 0
         
     for field in categorical_fields.keys():
-        distinct_count = len([x for x in col.distinct(field) if x and str(x).lower() not in ["unknown", "nan", "none", ""]])
-        summary[f"unique_{field}"] = distinct_count
+        try:
+            distinct_count = len([
+                x for x in col.distinct(field) 
+                if x and str(x).strip().lower() not in {"unknown", "nan", "none", ""}
+            ])
+            summary[f"unique_{field}"] = distinct_count
+        except Exception as e:
+            logger.warning(f"Could not count distinct for '{field}': {e}")
         
     return summary
 
 def get_all_analytics():
-    """Returns dynamic analytics data based on the discovered schema."""
+    """Returns dynamic analytics data based on the discovered schema.
+    Falls back to auto-detection if no schema profile exists."""
     try:
+        # Try stored schema first, then auto-detect
         categorical_fields = get_schema_profile()
+        if not categorical_fields:
+            logger.info("No schema profile found, auto-detecting from data...")
+            categorical_fields = _auto_detect_categorical_fields()
+        
+        if not categorical_fields:
+            logger.warning("No categorical fields found in data")
+            return {"summary": {"total_documents": _get_collection().count_documents({})}, "distributions": {}}
         
         response = {
             "summary": get_dynamic_summary(categorical_fields),
@@ -76,9 +138,11 @@ def get_all_analytics():
         }
         
         for field in categorical_fields.keys():
-            response["distributions"][field] = get_dynamic_distribution(field)
-            
+            dist = get_dynamic_distribution(field)
+            if dist:  # Only include non-empty distributions
+                response["distributions"][field] = dist
+                
         return response
     except Exception as e:
-        logger.error(f"Analytics error: {e}")
+        logger.error(f"Analytics error: {e}", exc_info=True)
         raise

@@ -1158,6 +1158,8 @@ body {
 .back-btn:hover {
   color: var(--accent-color);
   border-color: var(--accent-color);
+  background: white;
+  transform: scale(1.05);
 }
 
 .analytics-loading {
