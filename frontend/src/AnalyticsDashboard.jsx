@@ -22,7 +22,11 @@ class ErrorBoundary extends React.Component {
 }
 
 // Audited Fix: Dynamic routing ensures Vercel cloud deployments never attempt to contact Localhost.
-const API_BASE = (import.meta?.env?.VITE_API_BASE || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://127.0.0.1:8001/api' : 'https://rag-system-834m.onrender.com/api')).replace(/\/$/, '');
+const API_BASE = (import.meta?.env?.VITE_API_BASE || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://127.0.0.1:8001/api' : null))?.replace(/\/$/, '');
+
+if (!import.meta?.env?.VITE_API_BASE && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+  throw new Error("VITE_API_BASE not configured");
+}
 
 const COLORS = ['#4f46e5', '#06b6d4', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16', '#e11d48'];
 
@@ -98,8 +102,8 @@ function AnalyticsDashboard({ onBack }) {
         }
       } catch (e) {
         if (isMounted) {
-            toast.error("Failed to load analytics");
-            setData({ summary: { total_documents: 0 }, distributions: {} }); // Mock empty state to prevent infinite hangs
+            console.error("Analytics API failed:", e);
+            toast.error("Analytics API failed");
             setLoading(false);
         }
       }
@@ -108,8 +112,8 @@ function AnalyticsDashboard({ onBack }) {
     // Initial fetch
     fetchAnalytics();
     
-    // Set up auto-refresh polling every 3 seconds for completely dynamic data views
-    const intervalId = setInterval(fetchAnalytics, 3000);
+    // Set up auto-refresh polling every 15 seconds for completely dynamic data views
+    const intervalId = setInterval(fetchAnalytics, 15000);
     
     return () => {
       isMounted = false;
@@ -173,11 +177,13 @@ function AnalyticsDashboard({ onBack }) {
     );
   }
 
-  if (!data) {
+  if (!data || !data.distributions || Object.keys(data.distributions).length === 0) {
     return (
-      <div className="analytics-loading">
-        <p>No analytics data available. Please sync your database first.</p>
-        <button className="back-btn" onClick={onBack} title="Back to Chat"><ArrowLeft size={20} /></button>
+      <div className="analytics-loading" style={{ margin: '4rem auto', textAlign: 'center' }}>
+        <p style={{ marginBottom: '2rem', fontSize: '1.2rem', color: '#64748b' }}>No analytics data available</p>
+        <button className="auth-btn highlight" onClick={onBack} style={{ margin: '0 auto', display: 'flex', alignItems: 'center', gap: '0.5rem', width: 'fit-content', padding: '0.75rem 2rem' }}>
+          <ArrowLeft size={18} /> Back to Chat
+        </button>
       </div>
     );
   }
