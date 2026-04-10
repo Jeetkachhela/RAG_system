@@ -1142,10 +1142,12 @@ body {
 .back-btn {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.5rem 1rem;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: 50%;
   background: var(--panel-bg);
   color: var(--text-secondary);
   font-size: 0.85rem;

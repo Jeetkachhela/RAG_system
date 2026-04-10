@@ -1,9 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { Loader2, Users, Activity, MapPin, Globe, ArrowLeft, TrendingUp } from 'lucide-react';
+import { Loader2, Users, Activity, ArrowLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
+
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  render() {
+    if (this.state.hasError) {
+      return <div style={{padding: '2rem', color: '#ef4444', background: '#fef2f2', borderRadius: '8px'}}>Chart crashed: {this.state.error?.toString()}</div>;
+    }
+    return this.props.children;
+  }
+}
 
 // Audited Fix: Dynamic routing ensures Vercel cloud deployments never attempt to contact Localhost.
 const API_BASE = (import.meta?.env?.VITE_API_BASE || (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://127.0.0.1:8001/api' : 'https://rag-system-834m.onrender.com/api')).replace(/\/$/, '');
@@ -58,7 +74,16 @@ const renderCustomLabel = ({ name, percent }) => {
   return `${name} (${(percent * 100).toFixed(0)}%)`;
 };
 
-export default function AnalyticsDashboard({ onBack }) {
+export default function AnalyticsDashboardWrapper(props) {
+  return (
+    <ErrorBoundary>
+      <AnalyticsDashboard {...props} />
+    </ErrorBoundary>
+  );
+}
+
+function AnalyticsDashboard({ onBack }) {
+
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -102,8 +127,8 @@ export default function AnalyticsDashboard({ onBack }) {
       >
         <div className="analytics-header">
           <div className="analytics-header-left">
-            <button className="back-btn" onClick={onBack}>
-              <ArrowLeft size={16} /> Back to Chat
+            <button className="back-btn" onClick={onBack} title="Back to Chat">
+              <ArrowLeft size={20} />
             </button>
             <h2>Analytics Dashboard</h2>
           </div>
@@ -152,7 +177,7 @@ export default function AnalyticsDashboard({ onBack }) {
     return (
       <div className="analytics-loading">
         <p>No analytics data available. Please sync your database first.</p>
-        <button className="back-btn" onClick={onBack}><ArrowLeft size={16} /> Back to Chat</button>
+        <button className="back-btn" onClick={onBack} title="Back to Chat"><ArrowLeft size={20} /></button>
       </div>
     );
   }
@@ -179,8 +204,8 @@ export default function AnalyticsDashboard({ onBack }) {
     >
       <div className="analytics-header">
         <div className="analytics-header-left">
-          <button className="back-btn" onClick={onBack}>
-            <ArrowLeft size={16} /> Back to Chat
+          <button className="back-btn" onClick={onBack} title="Back to Chat">
+            <ArrowLeft size={20} />
           </button>
           <h2>Analytics Dashboard</h2>
         </div>
@@ -225,7 +250,7 @@ export default function AnalyticsDashboard({ onBack }) {
             return (
               <KpiCard 
                 key={k} 
-                icon={TrendingUp} 
+                icon={Activity} 
                 label={`Unique ${label}s`} 
                 value={summary[k]} 
                 color={COLORS[idx % COLORS.length]} 
@@ -245,6 +270,7 @@ export default function AnalyticsDashboard({ onBack }) {
             
             return (
               <ChartCard key={key} title={`${key} Breakdown`}>
+                 <ErrorBoundary>
                  <ResponsiveContainer width="100%" height={isManyItems ? 500 : 380}>
                    {isManyItems ? (
                      <BarChart data={distData} layout="vertical" margin={{ top: 5, right: 30, left: 60, bottom: 5 }}>
@@ -275,6 +301,7 @@ export default function AnalyticsDashboard({ onBack }) {
                       </PieChart>
                    )}
                  </ResponsiveContainer>
+                 </ErrorBoundary>
               </ChartCard>
             );
         })}
