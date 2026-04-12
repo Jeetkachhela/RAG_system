@@ -2,6 +2,7 @@ import os
 import logging
 from pymongo import MongoClient
 from dotenv import load_dotenv
+from datetime import datetime
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -25,6 +26,41 @@ def _get_collection():
 
 def _get_schema_collection():
     return _get_client()[DB_NAME]["kanan_schema"]
+
+def _get_logs_collection():
+    return _get_client()[DB_NAME]["chat_logs"]
+
+def log_chat_query(query: str, latency: float = 0.0):
+    try:
+        col = _get_logs_collection()
+        col.insert_one({
+            "query": query,
+            "latency": latency,
+            "timestamp": datetime.now()
+        })
+    except Exception as e:
+        logger.error(f"Failed to log chat query: {e}")
+
+def get_usage_analytics():
+    col = _get_logs_collection()
+    total = col.count_documents({})
+    
+    pipeline = [
+        {"$group": {"_id": "$query", "count": {"$sum": 1}}},
+        {"$sort": {"count": -1}},
+        {"$limit": 5}
+    ]
+    
+    try:
+        top_queries = list(col.aggregate(pipeline))
+    except Exception as e:
+        logger.error(f"Failed to aggregate top queries: {e}")
+        top_queries = []
+        
+    return {
+        "total_queries": total,
+        "top_queries": [{"name": str(q["_id"]), "value": q["count"]} for q in top_queries]
+    }
 
 def get_schema_profile():
     """Try to load schema from kanan_schema collection."""
@@ -134,7 +170,8 @@ def get_all_analytics():
         
         response = {
             "summary": get_dynamic_summary(categorical_fields),
-            "distributions": {}
+            "distributions": {},
+            "usage": get_usage_analytics()
         }
         
         for field in categorical_fields.keys():

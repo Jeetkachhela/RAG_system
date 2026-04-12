@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, Request, UploadFile, File
+from fastapi import FastAPI, HTTPException, Depends, Request, UploadFile, File, BackgroundTasks
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,7 +16,7 @@ from ingest import parse_and_ingest, parse_and_ingest_from_bytes
 from retriever import retrieve_context_with_meta
 from chat import generate_chat_stream
 from connectivity import get_system_status, set_current_mode, get_current_mode
-from analytics import get_all_analytics
+from analytics import get_all_analytics, log_chat_query
 
 # Setup logging
 logging.basicConfig(
@@ -137,6 +137,7 @@ class ChatRequest(BaseModel):
 async def chat_endpoint(
     req: ChatRequest,
     request: Request,
+    background_tasks: BackgroundTasks,
     _rl: bool = Depends(rate_limit_dep),
 ):
     if not req.messages:
@@ -164,8 +165,14 @@ async def chat_endpoint(
     try:
         # Keep only the last 6 messages to prevent LLM context bloat and hallucinations
         recent_messages = raw_messages[-6:] if len(raw_messages) > 6 else raw_messages
+        
+        start_time = time.time()
         # Offload synchronous PyMongo lookup bounds to threadpool to prevent ASGI event loop blocking
         context_str, meta = await run_in_threadpool(retrieve_context_with_meta, last_user_query, chat_history=recent_messages)
+        latency = time.time() - start_time
+        
+        # Log usage to analytics asynchronously
+        background_tasks.add_task(log_chat_query, last_user_query, latency)
 
         headers = {}
         if meta.get("warnings"):

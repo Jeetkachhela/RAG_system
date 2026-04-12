@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { Loader2, Users, Activity, ArrowLeft } from 'lucide-react';
+import { Loader2, Users, Activity, ArrowLeft, MessageSquare, TrendingUp } from 'lucide-react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 
@@ -188,7 +188,7 @@ function AnalyticsDashboard({ onBack }) {
     );
   }
 
-  const { summary, distributions } = data;
+  const { summary, distributions, usage } = data;
   const distKeys = Object.keys(distributions || {});
 
   const containerVariants = {
@@ -245,6 +245,10 @@ function AnalyticsDashboard({ onBack }) {
         <div className="kpi-grid">
         <KpiCard icon={Users} label="Total Records" value={summary?.total_documents || 0} color="#4f46e5" />
         
+        {usage && usage.total_queries !== undefined && (
+          <KpiCard icon={MessageSquare} label="Total Queries" value={usage.total_queries} color="#ec4899" />
+        )}
+
         {summary?.active_rate !== undefined && (
           <KpiCard icon={Activity} label="Active Rate" value={`${summary.active_rate}%`} color="#10b981" />
         )}
@@ -267,6 +271,22 @@ function AnalyticsDashboard({ onBack }) {
 
       {/* Dynamic Charts Grid */}
       <div className="charts-grid">
+        {usage && usage.top_queries && usage.top_queries.length > 0 && (
+          <ChartCard title="Top User Queries">
+            <ResponsiveContainer width="100%" height={380}>
+              <BarChart data={usage.top_queries} layout="vertical" margin={{ top: 5, right: 30, left: 60, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
+                <XAxis type="number" tick={{ fontSize: 12, fill: '#64748b' }} />
+                <YAxis type="category" dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} width={120} />
+                <Tooltip content={<CustomTooltip />} />
+                <Bar dataKey="value" radius={[0, 6, 6, 0]}>
+                  {usage.top_queries.map((_, i) => <Cell key={i} fill={COLORS[(i + 4) % COLORS.length]} />)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </ChartCard>
+        )}
+
         {distKeys.map((key, index) => {
             const distData = distributions[key];
             if (!distData || distData.length === 0) return null;
